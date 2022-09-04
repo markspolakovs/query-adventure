@@ -1,8 +1,28 @@
+- name: Travel Sample
+  description: |-
+    The classic Travel Sample. Note that all your queries will be scoped to the "inventory" scope, so you can use
+    e.g. "SELECT * FROM airport" rather than "SELECT * FROM `travel-sample` WHERE type = 'airport'".
+  keyspace: travel-sample._default
+  queries:
+
+    - name: Departure Board
+      challenge: Find the departure time and destination airport of the next 25 flights departing from London Heathrow.
+      points: 25
+      query: |-
+        select s.utc, r.destinationairport from route r
+        unnest r.schedule s
+        where r.sourceairport = "LHR"
+        and s.day = date_part_str(now_utc(), "dow")
+        and s.utc > NOW_STR("hh:mm:ss")
+        order by s.utc
+        limit 25
+
 - name: Transport for Greater Manchester
   description: |-
     All trams and buses in Greater Manchester.
-    
     Based on the source data in GTFS format. More information about GTFS at https://developers.google.com/transit/gtfs.
+    Each file in the GTFS archive has been converted to a collection, e.g. routes.txt is the `routes` collection.
+    All column names are preserved exactly as document keys.
   keyspace: tfgm._default
   queries:
 
@@ -12,3 +32,25 @@
       points: 10
       query: |-
         SELECT RAW r FROM routes r WHERE r.agency_id = "METL" ORDER BY r.route_id
+
+    - name: Departure Board
+      challenge: |-
+        Find the next 10 departures from the three closest tram stops to the Couchbase Manchester office (as the crow flies from the front door).
+        Include the departure time, stop name, and destination of the tram. Order by departure time.
+      points: 50
+      query: |-
+        SELECT stop_times.departure_time,
+          stops.stop_name,
+          trips.trip_headsign
+        FROM stop_times
+          JOIN trips ON trips.trip_id = stop_times.trip_id
+          JOIN stops ON stop_times.stop_id = stops.stop_id
+        WHERE stop_times.arrival_time > NOW_STR("hh:mm:ss")
+          AND stop_times.arrival_time < MILLIS_TO_STR(NOW_MILLIS() + 15 * 60 * 1000, "hh:mm:ss")
+          AND stop_times.trip_id LIKE "%MF%"
+          AND (stops.stop_name LIKE "Exchange Square%"
+            OR stops.stop_name LIKE "Piccadilly Gardens%"
+            OR stops.stop_name LIKE "Market Street%")
+          AND stops.stop_name LIKE "%Metrolink)"
+        ORDER BY stop_times.arrival_time
+        LIMIT 10
