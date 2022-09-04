@@ -1,0 +1,14 @@
+- name: Transport for Greater Manchester
+  description: |-
+    All trams and buses in Greater Manchester.
+    
+    Based on the source data in GTFS format. More information about GTFS at https://developers.google.com/transit/gtfs.
+  keyspace: tfgm._default
+  queries:
+
+    - name: Tram Lines
+      challenge: |-
+        Find the details of all tram lines, ordered by the route ID.
+      points: 10
+      query: |-
+        SELECT RAW r FROM routes r WHERE r.agency_id = "METL" ORDER BY r.route_id
