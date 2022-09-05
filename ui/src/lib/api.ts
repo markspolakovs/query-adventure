@@ -71,6 +71,8 @@ export async function doAPIRequest(
     let message: string;
     if ("error" in payload) {
       message = payload.error;
+    } else if ("message" in payload) {
+      message = payload.message;
     } else {
       message = JSON.stringify(payload);
     }

@@ -45,7 +45,7 @@ func checkAndSetRateLimit(c echo.Context, kind rateLimitKind, g *cfg.Globals) er
 		goto set
 	}
 	if time.Since(lastTime) < limit {
-		return echo.NewHTTPError(http.StatusTooManyRequests, fmt.Sprintf("rate limit exceeded, try again in %v", limit-(time.Since(lastTime))))
+		return echo.NewHTTPError(http.StatusTooManyRequests, fmt.Sprintf("too many %s requests, try again in %v", kind, limit-(time.Since(lastTime))))
 	}
 set:
 	rls[kind] = time.Now()

@@ -2,11 +2,64 @@
   description: |-
     The classic Travel Sample. Note that all your queries will be scoped to the "inventory" scope, so you can use
     e.g. "SELECT * FROM airport" rather than "SELECT * FROM `travel-sample` WHERE type = 'airport'".
-  keyspace: travel-sample._default
+  keyspace: travel-sample.inventory
   queries:
 
+    - name: UK Airports
+      challenge: |-
+        Find the names of all airports in the UK, in alphabetical order.
+      points: 10
+      query: |-
+        SELECT RAW airportname FROM airport
+        WHERE country = "United Kingdom"
+        AND airportname NOT IN ["London St Pancras", "Waterloo International", "All Airports"]
+        AND airportname NOT LIKE "%Station"
+        ORDER BY airportname
+      hints:
+        - The question asks for just the airport name - you may need to use SELECT RAW.
+        - The data is messy and includes some railway stations as well as airports.
+        - '"All Airports" is not an airport.'
+
+    - name: Countries With Airports
+      challenge: |-
+        Find the 10 countries with the most airports. Include the name of the country and the number of airports.
+      points: 10
+      query: |-
+        SELECT country, count(country) AS count
+        FROM airport
+        GROUP BY country
+        ORDER BY count DESC
+        LIMIT 10
+      hints:
+        - You'll need to use a GROUP BY.
+
+    - name: Late Fliers
+      challenge: |-
+        Find the names of all the cities that can be reached from San Francisco Airport on flights scheduled to depart
+        between 10pm and 6am (Pacific Time), in alphabetical order. Ensure each city only appears once.
+      points: 20
+      query: |-
+        SELECT RAW a.city
+        FROM `travel-sample`.inventory.route r
+        JOIN `travel-sample`.inventory.airport a ON r.destinationairport = a.faa
+        WHERE r.sourceairport = "SFO"
+        AND ARRAY_LENGTH((
+          SELECT s.*
+          FROM r.schedule s
+          WHERE s.utc >= "05:00:00"
+          AND s.utc < "13:00:00"
+          ORDER BY s.utc)) > 0
+        GROUP BY a.city
+        ORDER BY a.city
+      hints:
+        - 10pm and 6am Pacific Time are 05:00 and 13:00 UTC respectively.
+        - San Francisco Airport's FAA/ICAO code is SFO.
+        - This is doable with one JOIN and one ARRAY_LENGTH subquery - you can filter on `route.sourceairport` to narrow down the list of routes to consider.
+
     - name: Departure Board
-      challenge: Find the departure time and destination airport of the next 25 flights departing from London Heathrow.
+      challenge: |-
+        Find the departure time and IATA code of the destination airport of the next 25 flights departing from London Heathrow.
+        If two flights depart at the same time, sort them by the destination airport code.
       points: 25
       query: |-
         select s.utc, r.destinationairport from route r
@@ -14,7 +67,7 @@
         where r.sourceairport = "LHR"
         and s.day = date_part_str(now_utc(), "dow")
         and s.utc > NOW_STR("hh:mm:ss")
-        order by s.utc
+        order by s.utc, r.destinationairport
         limit 25
 
 - name: Transport for Greater Manchester
@@ -31,13 +84,16 @@
         Find the details of all tram lines, ordered by the route ID.
       points: 10
       query: |-
-        SELECT RAW r FROM routes r WHERE r.agency_id = "METL" ORDER BY r.route_id
+        SELECT RAW r FROM routes r WHERE r.agency_id = "METL" AND route_short_name NOT LIKE "%Bus Replacement" ORDER BY r.route_id
+      hints:
+        - The data contains tram replacement buses - you'll need to exclude these.
+        - The Metrolink agency ID is METL.
 
     - name: Departure Board
       challenge: |-
         Find the next 10 departures from the three closest tram stops to the Couchbase Manchester office (as the crow flies from the front door).
         Include the departure time, stop name, and destination of the tram. Order by departure time.
-      points: 50
+      points: 40
       query: |-
         SELECT stop_times.departure_time,
           stops.stop_name,
@@ -54,3 +110,22 @@
           AND stops.stop_name LIKE "%Metrolink)"
         ORDER BY stop_times.arrival_time
         LIMIT 10
+      hints:
+        - You may need to use at least two JOIN statements.
+        - The dataset includes separate schedules for Mondays-Fridays and Saturdays-Sundays. Make sure you use the right one.
+        - "The three closest stops are Piccadilly Gardens, Market Street, and Exchange Square (St Peter's Square is a few metres further)."
+
+#    - name: Far-Away Bus Stops
+#      challenge: |-
+#        Find the details of all bus stops more than 20 miles from Piccadilly Gardens, in order of the distance as the crow flies.
+#      points: 70
+#      query: |-
+#        SELECT stops.*, d
+#        FROM stops
+#        let lat1 = 53.480278,
+#        lon1 = -2.2375,
+#        a = power(sin(radians(stop_lat - lat1)/2), 2) + cos(radians(lat1))*cos(radians(stop_lat)) * power(sin(radians(stop_lon - lon1)), 2),
+#        c = 2 * atan2(sqrt(a), sqrt(1-a)),
+#        d = 6371e3 * c
+#        where d > 20000
+#        order by d

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 
@@ -20,7 +19,6 @@ type RunCmd struct {
 }
 
 func (r *RunCmd) Run(g *cfg.Globals) error {
-	fmt.Println(r.GoogleCfg)
 	cb, err := db.Connect(g)
 	if err != nil {
 		return err

@@ -63,34 +63,39 @@ func (c *CBDatabase) ExecuteAndVerifyQuery(ctx context.Context, keyspace, target
 
 	var targetRows, inputRows uint
 	var finalErr error
+	var targetRow, inputRow any
 	for targetQR.Next() {
 		targetRows++
+		err = targetQR.Row(&targetRow)
+		if err != nil {
+			return fmt.Errorf("failed to parse row from target: %w", err)
+		}
+
 		ok := inputQR.Next()
 		if !ok {
 			goto notEnough
 		}
 		inputRows++
-		var targetRow, inputRow any
-		err = targetQR.Row(&targetRow)
-		if err != nil {
-			return fmt.Errorf("failed to parse row from target: %w", err)
-		}
 		err = inputQR.Row(&inputRow)
 		if err != nil {
 			return fmt.Errorf("failed to parse row from input: %w", err)
 		}
 
 		if !reflect.DeepEqual(targetRow, inputRow) {
-			finalErr = errMismatch(inputRows, inputRow)
+			finalErr = errMismatch(inputRows, targetRow, inputRow)
 			goto exit
 		}
 	}
 	if inputQR.Next() {
 		inputRows++
+		err = inputQR.Row(&inputRow)
+		if err != nil {
+			return fmt.Errorf("failed to parse row from input (in too many rows loop): %w", err)
+		}
 		for inputQR.Next() {
 			inputRows++
 		}
-		finalErr = errTooManyRows(targetRows, inputRows)
+		finalErr = errTooManyRows(targetRows, inputRows, targetRow, inputRow)
 		goto exit
 	}
 	finalErr = nil
@@ -100,7 +105,7 @@ notEnough:
 	for targetQR.Next() {
 		targetRows++
 	}
-	finalErr = errNotEnoughRows(targetRows, inputRows)
+	finalErr = errNotEnoughRows(targetRows, inputRows, inputRow, targetRow)
 	goto exit
 exit:
 	err = targetQR.Close()

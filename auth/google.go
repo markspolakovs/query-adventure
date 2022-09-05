@@ -38,7 +38,7 @@ type GoogleAuthenticator struct {
 func NewGoogleAuthenticator(gc cfg.GoogleCfg) (*GoogleAuthenticator, error) {
 	prov, err := oidc.NewProvider(context.TODO(), googleIssuer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build provider: %w", err)
+		return nil, fmt.Errorf("failed to build Google auth OIDC provider: %w", err)
 	}
 	return &GoogleAuthenticator{
 		gc:   gc,

@@ -11,6 +11,7 @@ export interface Query {
   name: string;
   challenge: string;
   points: number;
+  hints: string[] | null;
 }
 
 export const datasets = ref<Dataset[] | null>(null);

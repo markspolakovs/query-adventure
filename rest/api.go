@@ -135,7 +135,12 @@ func (a *API) handleSubmitAnswer(c echo.Context) error {
 		return err
 	}
 
-	return c.NoContent(http.StatusOK) // FIXME set points
+	return c.JSON(http.StatusOK, map[string]any{
+		"message": fmt.Sprintf(
+			"That was the correct query! If Marks had finished this prototype, you'd have received %d points now.",
+			query.Points,
+		),
+	}) // FIXME set points
 }
 
 func (a *API) getDS(c echo.Context) (data.Dataset, error) {
