@@ -2,6 +2,7 @@ package rest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -49,6 +50,7 @@ func NewAPI(g *cfg.Globals, qCB *db.QueryConnection, mCB *db.ManagementConnectio
 		}),
 	}
 	a.e.Logger.SetLevel(log.DEBUG)
+	a.e.HTTPErrorHandler = a.errorHandler
 	a.e.Use(middleware.Logger())
 	a.e.Use(middleware.Recover())
 	a.e.Use(session.Middleware(sessions.NewCookieStore([]byte(g.SessionKey))))
@@ -206,4 +208,13 @@ func (a *API) handleGetDatasets(c echo.Context) error {
 func (a *API) handleMe(c echo.Context) error {
 	user := auth.MustUser(c)
 	return c.JSON(http.StatusOK, user)
+}
+
+func (a *API) errorHandler(err error, c echo.Context) {
+	var httpErr *echo.HTTPError
+	if errors.As(err, &httpErr) {
+		a.e.DefaultHTTPErrorHandler(httpErr, c)
+		return
+	}
+	a.e.DefaultHTTPErrorHandler(err, c)
 }
