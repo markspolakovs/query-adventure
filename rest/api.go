@@ -23,17 +23,19 @@ import (
 type API struct {
 	e    *echo.Echo
 	g    *cfg.Globals
-	cb   *db.CBDatabase
+	qCB  *db.QueryConnection
+	mCB  *db.ManagementConnection
 	ds   data.Datasets
 	auth auth.Authenticator
 	am   *auth.Middleware
 }
 
-func NewAPI(g *cfg.Globals, cb *db.CBDatabase, ds data.Datasets, authn auth.Authenticator) *API {
+func NewAPI(g *cfg.Globals, qCB *db.QueryConnection, mCB *db.ManagementConnection, ds data.Datasets, authn auth.Authenticator) *API {
 	a := &API{
 		e:    echo.New(),
 		g:    g,
-		cb:   cb,
+		qCB:  qCB,
+		mCB:  mCB,
 		ds:   ds,
 		auth: authn,
 		am:   auth.NewMiddleware(authn),
@@ -77,14 +79,15 @@ func (a *API) registerRoutes() {
 }
 
 func (a *API) handleQuery(c echo.Context) error {
-	ds, err := a.getDS(c)
-	if err != nil {
-		return err
+	ds, ok := a.ds.DatasetByID(c.Param("ds"))
+	if !ok {
+		return echo.NewHTTPError(http.StatusNotFound, "no such dataset")
 	}
+
 	var body struct {
 		Statement string `json:"statement" form:"statement"`
 	}
-	err = c.Bind(&body)
+	err := c.Bind(&body)
 	if err != nil {
 		return err
 	}
@@ -94,7 +97,7 @@ func (a *API) handleQuery(c echo.Context) error {
 		return err
 	}
 
-	res, err := a.cb.ExecuteQuery(c.Request().Context(), ds.Keyspace, body.Statement)
+	res, err := a.qCB.ExecuteQuery(c.Request().Context(), ds.Keyspace, body.Statement)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to execute query: %v", err))
 	}
@@ -105,32 +108,29 @@ func (a *API) handleQuery(c echo.Context) error {
 }
 
 func (a *API) handleSubmitAnswer(c echo.Context) error {
-	ds, err := a.getDS(c)
-	if err != nil {
-		return err
+	ds, ok := a.ds.DatasetByID(c.Param("ds"))
+	if !ok {
+		return echo.NewHTTPError(http.StatusNotFound, "no such dataset")
 	}
-	queryIdx, err := strconv.Atoi(c.Param("query"))
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid query: %w", err)
+	query, ok := ds.QueryByID(c.Param("query"))
+	if !ok {
+		return echo.NewHTTPError(http.StatusNotFound, "query not found")
 	}
-	if queryIdx < 0 || queryIdx >= len(ds.Queries) {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid query %d", queryIdx)
-	}
+
 	var body struct {
 		Statement string `json:"statement" form:"statement"`
 	}
-	err = c.Bind(&body)
+	err := c.Bind(&body)
 	if err != nil {
 		return err
 	}
-	query := ds.Queries[queryIdx]
 
 	err = checkAndSetRateLimit(c, rlCheck, a.g)
 	if err != nil {
 		return err
 	}
 
-	err = a.cb.ExecuteAndVerifyQuery(c.Request().Context(), ds.Keyspace, query.Query, body.Statement)
+	err = a.qCB.ExecuteAndVerifyQuery(c.Request().Context(), ds.Keyspace, query.Query, body.Statement)
 	if err != nil {
 		return err
 	}
@@ -141,18 +141,6 @@ func (a *API) handleSubmitAnswer(c echo.Context) error {
 			query.Points,
 		),
 	}) // FIXME set points
-}
-
-func (a *API) getDS(c echo.Context) (data.Dataset, error) {
-	dsStr := c.Param("ds")
-	ds, err := strconv.Atoi(dsStr)
-	if err != nil {
-		return data.Dataset{}, echo.NewHTTPError(http.StatusBadRequest, "invalid ds: %w", err)
-	}
-	if ds < 0 || ds >= len(a.ds) {
-		return data.Dataset{}, echo.NewHTTPError(http.StatusBadRequest, "invalid ds %d", ds)
-	}
-	return a.ds[ds], nil
 }
 
 func (a *API) handleGetDatasets(c echo.Context) error {

@@ -7,9 +7,13 @@ import (
 )
 
 type DBCfg struct {
-	ConnectionString string `default:"couchbase://localhost"`
-	Username         string `default:"Administrator"`
-	Password         string `default:"password"`
+	ConnectionString   string `default:"couchbase://localhost"`
+	QueryUsername      string `default:"Administrator"`
+	QueryPassword      string `default:"password"`
+	ManagementUsername string `default:"Administrator"`
+	ManagementPassword string `default:"password"`
+	ManagementBucket   string `default:"mgmt"`
+	ManagementScope    string `default:"_default"`
 }
 
 type Globals struct {

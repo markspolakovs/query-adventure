@@ -19,11 +19,12 @@ type RunCmd struct {
 }
 
 func (r *RunCmd) Run(g *cfg.Globals) error {
-	cb, err := db.Connect(g)
+	qCB, mCB, err := db.Connect(g)
 	if err != nil {
 		return err
 	}
-	defer cb.Close()
+	defer qCB.Close()
+	defer mCB.Close()
 
 	datasets, err := data.LoadDatasets(g)
 	if err != nil {
@@ -35,7 +36,7 @@ func (r *RunCmd) Run(g *cfg.Globals) error {
 		return err
 	}
 
-	api := rest.NewAPI(g, cb, datasets, authn)
+	api := rest.NewAPI(g, qCB, mCB, datasets, authn)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 	defer cancel()

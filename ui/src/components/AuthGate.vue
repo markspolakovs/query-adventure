@@ -50,7 +50,7 @@ const signInErr = ref<string | null>(null);
   <div v-if="signedIn === null">
     <h1>Signing you in, please wait...</h1>
   </div>
-  <slot v-if="signedIn"></slot>
+  <slot v-else-if="signedIn"></slot>
   <div v-else>
     <h1>Sign in failed</h1>
     <p>{{ signInErr }}</p>

@@ -9,7 +9,7 @@ import (
 	"github.com/couchbase/gocb/v2"
 )
 
-func (c *CBDatabase) ExecuteQuery(ctx context.Context, keyspace, query string) ([]any, error) {
+func (c *QueryConnection) ExecuteQuery(ctx context.Context, keyspace, query string) ([]any, error) {
 	bucket, scope, ok := strings.Cut(keyspace, ".")
 	if !ok {
 		return nil, fmt.Errorf("invalid keyspace %q", keyspace)
@@ -38,7 +38,7 @@ func (c *CBDatabase) ExecuteQuery(ctx context.Context, keyspace, query string) (
 	return rows, nil
 }
 
-func (c *CBDatabase) ExecuteAndVerifyQuery(ctx context.Context, keyspace, target, input string) error {
+func (c *QueryConnection) ExecuteAndVerifyQuery(ctx context.Context, keyspace, target, input string) error {
 	bucket, scope, ok := strings.Cut(keyspace, ".")
 	if !ok {
 		return fmt.Errorf("invalid keyspace %q", keyspace)

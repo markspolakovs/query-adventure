@@ -28,11 +28,14 @@ cbu=${COUCHBASE_USER:-Administrator}
 cbp=${COUCHBASE_PASSWORD:-password}
 
 function create_bucket() {
-  if ! bc_out=$("$cbc" bucket-create -c "$cbh" -u "$cbu" -p "$cbp" --bucket "$1" --bucket-type couchbase --bucket-ramsize 512 --bucket-replica 1 --wait); then
+  name=$1
+  quota=${2:-512}
+  backend=${3:-couchstore}
+  if ! bc_out=$("$cbc" bucket-create -c "$cbh" -u "$cbu" -p "$cbp" --bucket "$name" --bucket-type couchbase --storage-backend "$backend" --bucket-ramsize "$quota" --bucket-replica 1 --wait); then
     if echo "$bc_out" | grep -q 'already exists'; then
-      echo "Bucket $1 already exists, skipping creation"
+      echo "Bucket $name already exists, skipping creation"
     else
-      echo "Failed to create bucket $1" >&2
+      echo "Failed to create bucket $name" >&2
       echo "$bc_out" >&2
       exit 1
     fi
@@ -63,7 +66,7 @@ unzip -d _tmp/tfgm ~/Downloads/TfGMgtfsnew.zip
 
 echo "Importing TfGM data..."
 
-create_bucket tfgm
+create_bucket tfgm 1024 magma
 create_collection agency
 "$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.agency" -g "%agency_id%" -d "file://$(pwd)/_tmp/tfgm/agency.txt"
 create_collection calendar_dates

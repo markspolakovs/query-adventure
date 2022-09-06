@@ -4,7 +4,7 @@ import { doAPIRequest } from "../lib/api";
 import { Dataset, datasets } from "../lib/datasetState";
 import Challenge from "./Challenge.vue";
 
-const active = ref<null | [number, number]>(null);
+const active = ref<null | [string, string]>(null);
 
 (async function () {
   datasets.value = (await doAPIRequest("GET", "/datasets", 200)) as Dataset[];
@@ -14,22 +14,22 @@ const active = ref<null | [number, number]>(null);
 <template>
   <Challenge
     v-if="active !== null"
-    :dataset-idx="active[0]"
-    :query-idx="active[1]"
+    :dataset-id="active[0]"
+    :query-id="active[1]"
     @go-back="active = null"
   />
   <div v-else>
     <h2>Datasets</h2>
     <b v-if="datasets === null">Loading, please wait...</b>
-    <div v-if="datasets !== null" v-for="(ds, dsIdx) in datasets">
+    <div v-if="datasets !== null" v-for="ds in datasets" :key="ds.id">
       <h3>{{ ds.name }}</h3>
       <p>{{ ds.description }}</p>
       <p>
         <b>Challenges:</b>
         <ul>
-            <li v-for="(q, qIdx) in ds.queries">
+            <li v-for="q in ds.queries" :key="q.id">
                 <button
-                    @click="active = [dsIdx, qIdx]">
+                    @click="active = [ds.id, q.id]">
                 {{ q.name }}
                 </button>
             </li>

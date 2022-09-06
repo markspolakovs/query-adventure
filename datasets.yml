@@ -1,11 +1,13 @@
-- name: Travel Sample
+- id: travel-sample
+  name: Travel Sample
   description: |-
     The classic Travel Sample. Note that all your queries will be scoped to the "inventory" scope, so you can use
     e.g. "SELECT * FROM airport" rather than "SELECT * FROM `travel-sample` WHERE type = 'airport'".
   keyspace: travel-sample.inventory
   queries:
 
-    - name: UK Airports
+    - id: uk-airports
+      name: UK Airports
       challenge: |-
         Find the names of all airports in the UK, in alphabetical order.
       points: 10
@@ -20,7 +22,8 @@
         - The data is messy and includes some railway stations as well as airports.
         - '"All Airports" is not an airport.'
 
-    - name: Countries With Airports
+    - id: countries-with-airports
+      name: Countries With Airports
       challenge: |-
         Find the 10 countries with the most airports. Include the name of the country and the number of airports.
       points: 10
@@ -33,7 +36,8 @@
       hints:
         - You'll need to use a GROUP BY.
 
-    - name: Late Fliers
+    - id: late-fliers
+      name: Late Fliers
       challenge: |-
         Find the names of all the cities that can be reached from San Francisco Airport on flights scheduled to depart
         between 10pm and 6am (Pacific Time), in alphabetical order. Ensure each city only appears once.
@@ -56,7 +60,8 @@
         - San Francisco Airport's FAA/ICAO code is SFO.
         - This is doable with one JOIN and one ARRAY_LENGTH subquery - you can filter on `route.sourceairport` to narrow down the list of routes to consider.
 
-    - name: Departure Board
+    - id: departure-board
+      name: Departure Board
       challenge: |-
         Find the departure time and IATA code of the destination airport of the next 25 flights departing from London Heathrow.
         If two flights depart at the same time, sort them by the destination airport code.
@@ -70,7 +75,8 @@
         order by s.utc, r.destinationairport
         limit 25
 
-- name: Transport for Greater Manchester
+- id: tfgm
+  name: Transport for Greater Manchester
   description: |-
     All trams and buses in Greater Manchester.
     Based on the source data in GTFS format. More information about GTFS at https://developers.google.com/transit/gtfs.
@@ -79,7 +85,8 @@
   keyspace: tfgm._default
   queries:
 
-    - name: Tram Lines
+    - id: tram-lines
+      name: Tram Lines
       challenge: |-
         Find the details of all tram lines, ordered by the route ID.
       points: 10
@@ -89,7 +96,8 @@
         - The data contains tram replacement buses - you'll need to exclude these.
         - The Metrolink agency ID is METL.
 
-    - name: Departure Board
+    - id: departure-board
+      name: Departure Board
       challenge: |-
         Find the next 10 departures from the three closest tram stops to the Couchbase Manchester office (as the crow flies from the front door).
         Include the departure time, stop name, and destination of the tram. Order by departure time.
@@ -115,7 +123,8 @@
         - The dataset includes separate schedules for Mondays-Fridays and Saturdays-Sundays. Make sure you use the right one.
         - "The three closest stops are Piccadilly Gardens, Market Street, and Exchange Square (St Peter's Square is a few metres further)."
 
-#    - name: Far-Away Bus Stops
+#    - id: far-away-bus-stops
+#      name: Far-Away Bus Stops
 #      challenge: |-
 #        Find the details of all bus stops more than 20 miles from Piccadilly Gardens, in order of the distance as the crow flies.
 #      points: 70

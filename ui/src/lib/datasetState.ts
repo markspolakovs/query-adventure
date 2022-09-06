@@ -1,13 +1,14 @@
 import { ref } from "vue";
-import { doAPIRequest } from "./api";
 
 export interface Dataset {
+  id: string;
   name: string;
   description: string;
   queries: Query[];
 }
 
 export interface Query {
+  id: string;
   name: string;
   challenge: string;
   points: number;

@@ -5,8 +5,8 @@ import { Dataset, datasets, Query } from "../lib/datasetState";
 
 defineEmits(["goBack"]);
 const props = defineProps<{
-  datasetIdx: number;
-  queryIdx: number;
+  datasetId: string;
+  queryId: string;
 }>();
 
 const input = ref("");
@@ -22,8 +22,8 @@ watchEffect(() => {
   if (datasets.value === null) {
     return;
   }
-  dataset.value = datasets.value[props.datasetIdx];
-  query.value = dataset.value.queries[props.queryIdx];
+  dataset.value = datasets.value.find(x => x.id === props.datasetId)!;
+  query.value = dataset.value.queries.find(x => x.id === props.queryId)!;
 });
 
 async function doQuery() {
@@ -34,7 +34,7 @@ async function doQuery() {
   try {
     const result = await doAPIRequest(
       "POST",
-      `/dataset/${props.datasetIdx}/query`,
+      `/dataset/${props.datasetId}/query`,
       200,
       {
         statement: input.value,
@@ -64,7 +64,7 @@ async function doCheck() {
   try {
     const result = await doAPIRequest(
       "POST",
-      `/dataset/${props.datasetIdx}/${props.queryIdx}/submitAnswer`,
+      `/dataset/${props.datasetId}/${props.queryId}/submitAnswer`,
       200,
       {
         statement: input.value,
