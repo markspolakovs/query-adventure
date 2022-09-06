@@ -5,9 +5,15 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/couchbase/gocb/v2"
 )
+
+type QueryConnection struct {
+	cluster      *gocb.Cluster
+	queryTimeout time.Duration
+}
 
 func (c *QueryConnection) ExecuteQuery(ctx context.Context, keyspace, query string) ([]any, error) {
 	bucket, scope, ok := strings.Cut(keyspace, ".")

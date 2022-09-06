@@ -2,13 +2,15 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strconv"
+	"net/http"
 	"time"
 
 	"query-adventure/data"
 
 	"github.com/couchbase/gocb/v2"
+	"github.com/labstack/echo/v4"
 )
 
 type CompleteChallenge struct {
@@ -18,6 +20,10 @@ type CompleteChallenge struct {
 	User        string    `json:"user"`
 	CompletedAt time.Time `json:"completed_at"`
 	Points      uint      `json:"points"`
+}
+
+func completeChallengeDocKey(teamID, datasetID, queryID string) string {
+	return fmt.Sprintf("%s::%s::%s", teamID, datasetID, queryID)
 }
 
 func (m *ManagementConnection) CompleteChallenge(ctx context.Context, dataset data.Dataset, query data.Query, team Team, email string) error {
@@ -30,11 +36,13 @@ func (m *ManagementConnection) CompleteChallenge(ctx context.Context, dataset da
 		CompletedAt: now,
 		Points:      query.Points,
 	}
-	id := strconv.FormatInt(now.Unix(), 10)
-	// FIXME: what if they've already completed it
+	id := completeChallengeDocKey(team.ID, dataset.ID, query.ID)
 	_, err := m.s.Collection(cCompletedChallenges).Insert(id, cc, &gocb.InsertOptions{
 		Context: ctx,
 	})
+	if errors.Is(err, gocb.ErrDocumentExists) {
+		return echo.NewHTTPError(http.StatusConflict, fmt.Sprintf("team %q has already completed challenge %s.%s", team.Name, dataset.ID, query.ID))
+	}
 	if err != nil {
 		return fmt.Errorf("failed to insert cc %q: %w", id, err)
 	}

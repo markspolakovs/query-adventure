@@ -13,6 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"golang.org/x/exp/slices"
 
 	"query-adventure/auth"
 	"query-adventure/cfg"
@@ -164,8 +165,42 @@ func (a *API) handleSubmitAnswer(c echo.Context) error {
 	})
 }
 
+type apiDataset struct {
+	data.Dataset
+	Queries []apiQuery `json:"queries"`
+}
+
+type apiQuery struct {
+	data.Query
+	Complete bool `json:"complete"`
+}
+
 func (a *API) handleGetDatasets(c echo.Context) error {
-	return c.JSON(http.StatusOK, a.ds.FilterQueries())
+	rawData := a.ds.FilterQueries()
+	user := auth.MustUser(c)
+	team, err := a.mCB.GetTeamForUser(c.Request().Context(), user.Email)
+	if err != nil {
+		return fmt.Errorf("failed to get user team: %w", err)
+	}
+	complete, err := a.mCB.GetTeamCompleteChallenges(c.Request().Context(), team)
+	if err != nil {
+		return fmt.Errorf("failed to find complete challenges: %w", err)
+	}
+	result := make([]apiDataset, 0, len(rawData))
+	for _, d := range rawData {
+		ds := apiDataset{
+			Dataset: d,
+			Queries: make([]apiQuery, 0, len(d.Queries)),
+		}
+		for _, q := range d.Queries {
+			ds.Queries = append(ds.Queries, apiQuery{
+				Query:    q,
+				Complete: slices.Contains(complete[ds.ID], q.ID),
+			})
+		}
+		result = append(result, ds)
+	}
+	return c.JSON(http.StatusOK, result)
 }
 
 func (a *API) handleMe(c echo.Context) error {

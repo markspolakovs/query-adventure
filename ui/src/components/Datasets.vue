@@ -30,7 +30,8 @@ const active = ref<null | [string, string]>(null);
             <li v-for="q in ds.queries" :key="q.id">
                 <button
                     @click="active = [ds.id, q.id]">
-                {{ q.name }}
+                  <del v-if="q.complete">{{ q.name }}</del>
+                  <span v-else>{{ q.name }}</span>
                 </button>
             </li>
         </ul>
