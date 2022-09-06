@@ -65,7 +65,7 @@ func (m *ManagementConnection) Close() error {
 
 var mgmtCollections = [...]string{
 	cTeams,
-	cCompleteChallenges,
+	cCompletedChallenges,
 }
 
 var mgmtIndexes = [...]string{

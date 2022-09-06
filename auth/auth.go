@@ -17,7 +17,7 @@ type Authenticator interface {
 const (
 	sessionKey     = "query-adventure-auth"
 	sessionUserKey = "user"
-	sessionCtxKey  = "user"
+	ctxKeyUser     = "user"
 )
 
 type Middleware struct {
@@ -34,11 +34,13 @@ func UserSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		if err != nil {
 			return fmt.Errorf("error getting session: %w", err)
 		}
+
 		user, ok := sess.Values[sessionUserKey].(UserData)
 		if !ok {
 			return next(ctx)
 		}
-		ctx.Set(sessionCtxKey, &user)
+
+		ctx.Set(ctxKeyUser, &user)
 		return next(ctx)
 	}
 }
@@ -46,7 +48,7 @@ func UserSessionMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 func RequireUser() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			user := c.Get(sessionCtxKey)
+			user := c.Get(ctxKeyUser)
 			if user == nil {
 				return echo.NewHTTPError(http.StatusUnauthorized)
 			}
@@ -56,7 +58,7 @@ func RequireUser() echo.MiddlewareFunc {
 }
 
 func User(e echo.Context) *UserData {
-	return e.Get(sessionCtxKey).(*UserData)
+	return e.Get(ctxKeyUser).(*UserData)
 }
 
 func MustUser(e echo.Context) *UserData {

@@ -9,18 +9,20 @@ import (
 
 // Collections
 const (
-	cTeams              string = "teams"
-	cCompleteChallenges string = "completeChallenges"
+	cTeams               string = "teams"
+	cCompletedChallenges string = "completedChallenges"
 )
 
 type Team struct {
+	ID      string   `json:"id"`
 	Name    string   `json:"name"`
-	Color   string   `json:"color"`
+	Color   string   `json:"color"` // TODO unused
 	Members []string `json:"members"`
 }
 
 func (m *ManagementConnection) GetTeamForUser(ctx context.Context, email string) (Team, error) {
-	qr, err := m.s.Query(fmt.Sprintf("SELECT RAW t FROM %s t WHERE $1 IN t.members LIMIT 1", cTeams), &gocb.QueryOptions{
+	// TODO consider a cache?
+	qr, err := m.s.Query(fmt.Sprintf("SELECT RAW t FROM %s t WHERE  ANY m IN t.members SATISFIES m = $1 END LIMIT 1", cTeams), &gocb.QueryOptions{
 		Context:              ctx,
 		PositionalParameters: []any{email},
 	})

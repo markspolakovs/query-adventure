@@ -1,58 +1,29 @@
 package rest
 
 import (
-	"encoding/gob"
 	"fmt"
-	"net/http"
-	"time"
 
-	"github.com/labstack/echo-contrib/session"
+	"query-adventure/auth"
+	"query-adventure/data"
+	"query-adventure/rest/ratelimit"
+
 	"github.com/labstack/echo/v4"
-
-	"query-adventure/cfg"
 )
 
-type rateLimitKind string
+const rlQuery = ratelimit.Key("query")
+const rlCheck = ratelimit.Key("check")
 
-const (
-	rlQuery rateLimitKind = "query"
-	rlCheck rateLimitKind = "check"
-)
-
-type rateLimitState map[rateLimitKind]time.Time
-
-func init() {
-	gob.Register(make(rateLimitState))
+func (a *API) casQueryLimit(e echo.Context) error {
+	user := auth.MustUser(e)
+	return a.rl.CheckAndSet(rlQuery, user.Email)
 }
 
-const rateLimitSessionKey = "ratelimit"
+func (a *API) casCheckLimit(e echo.Context, query data.Query) error {
+	user := auth.MustUser(e)
+	team, err := a.mCB.GetTeamForUser(e.Request().Context(), user.Email)
+	if err != nil {
+		return fmt.Errorf("failed to get team for user %q: %w", user.Email, err)
+	}
 
-func checkAndSetRateLimit(c echo.Context, kind rateLimitKind, g *cfg.Globals) error {
-	limit, ok := g.RateLimits[string(kind)]
-	if !ok {
-		return fmt.Errorf("no rate limit configured for %q", kind)
-	}
-	sess, err := session.Get(rateLimitSessionKey, c)
-	if err != nil {
-		return fmt.Errorf("failed to get session: %w", err)
-	}
-	rls, ok := sess.Values[rateLimitSessionKey].(rateLimitState)
-	if !ok {
-		rls = make(rateLimitState)
-	}
-	lastTime, ok := rls[kind]
-	if !ok {
-		goto set
-	}
-	if time.Since(lastTime) < limit {
-		return echo.NewHTTPError(http.StatusTooManyRequests, fmt.Sprintf("too many %s requests, try again in %v", kind, limit-(time.Since(lastTime))))
-	}
-set:
-	rls[kind] = time.Now()
-	sess.Values[rateLimitSessionKey] = rls
-	err = sess.Save(c.Request(), c.Response())
-	if err != nil {
-		return fmt.Errorf("failed to save session: %w", err)
-	}
-	return nil
+	return a.rl.CheckAndSet(rlCheck, query.ID+"::"+team.ID)
 }

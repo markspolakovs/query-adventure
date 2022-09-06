@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
@@ -17,6 +18,7 @@ import (
 	"query-adventure/cfg"
 	"query-adventure/data"
 	"query-adventure/db"
+	"query-adventure/rest/ratelimit"
 	"query-adventure/ui"
 )
 
@@ -28,6 +30,7 @@ type API struct {
 	ds   data.Datasets
 	auth auth.Authenticator
 	am   *auth.Middleware
+	rl   *ratelimit.RateLimiter
 }
 
 func NewAPI(g *cfg.Globals, qCB *db.QueryConnection, mCB *db.ManagementConnection, ds data.Datasets, authn auth.Authenticator) *API {
@@ -39,6 +42,10 @@ func NewAPI(g *cfg.Globals, qCB *db.QueryConnection, mCB *db.ManagementConnectio
 		ds:   ds,
 		auth: authn,
 		am:   auth.NewMiddleware(authn),
+		rl: ratelimit.NewRateLimiter(map[ratelimit.Key]time.Duration{
+			rlQuery: g.RateLimits[string(rlQuery)],
+			rlCheck: g.RateLimits[string(rlCheck)],
+		}),
 	}
 	a.e.Logger.SetLevel(log.DEBUG)
 	a.e.Use(middleware.Logger())
@@ -92,7 +99,7 @@ func (a *API) handleQuery(c echo.Context) error {
 		return err
 	}
 
-	err = checkAndSetRateLimit(c, rlQuery, a.g)
+	err = a.casQueryLimit(c)
 	if err != nil {
 		return err
 	}
@@ -105,6 +112,11 @@ func (a *API) handleQuery(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]any{
 		"rows": res,
 	})
+}
+
+type CorrectAnswerResponse struct {
+	OK     bool `json:"ok"`
+	Points uint `json:"points"`
 }
 
 func (a *API) handleSubmitAnswer(c echo.Context) error {
@@ -125,7 +137,13 @@ func (a *API) handleSubmitAnswer(c echo.Context) error {
 		return err
 	}
 
-	err = checkAndSetRateLimit(c, rlCheck, a.g)
+	user := auth.MustUser(c)
+	team, err := a.mCB.GetTeamForUser(c.Request().Context(), user.Email)
+	if err != nil {
+		return fmt.Errorf("failed to get team: %w", err)
+	}
+
+	err = a.casCheckLimit(c, query)
 	if err != nil {
 		return err
 	}
@@ -135,12 +153,15 @@ func (a *API) handleSubmitAnswer(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
-		"message": fmt.Sprintf(
-			"That was the correct query! If Marks had finished this prototype, you'd have received %d points now.",
-			query.Points,
-		),
-	}) // FIXME set points
+	err = a.mCB.CompleteChallenge(c.Request().Context(), ds, query, team, user.Email)
+	if err != nil {
+		return fmt.Errorf("failed to mark challenge %s.%s as complete: %w", ds.ID, query.ID, err)
+	}
+
+	return c.JSON(http.StatusOK, CorrectAnswerResponse{
+		OK:     true,
+		Points: query.Points,
+	})
 }
 
 func (a *API) handleGetDatasets(c echo.Context) error {
