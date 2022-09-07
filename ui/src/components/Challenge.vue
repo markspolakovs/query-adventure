@@ -2,6 +2,7 @@
 import { ref, watch, watchEffect } from "vue";
 import { APIError, doAPIRequest } from "../lib/api";
 import { Dataset, datasets, Query } from "../lib/datasetState";
+import Confetti from "./Confetti.vue";
 import Editor from "./Editor.vue";
 
 defineEmits(["goBack"]);
@@ -17,6 +18,8 @@ const message = ref("");
 const resultType = ref<"success" | "error" | null>(null);
 const loading = ref(false);
 const messageType = ref(0);
+
+const confettiRef = ref<typeof Confetti>();
 
 const dataset = ref<Dataset | null>(null);
 const query = ref<Query | null>(null);
@@ -71,9 +74,10 @@ async function doCheck() {
       {
         statement: input.value,
       }
-    );
-    message.value = JSON.stringify(result, null, 2); // FIXME this will change
+    ) as {points: number};
+    message.value = `Congratulations, that was the correct query! You have received ${result.points} points.`;
     messageType.value = "success"; // if the API didn't error we know it's correct
+    confettiRef.value?.fire({});
   } catch (e) {
     if (e instanceof APIError) {
       message.value = e.message;
@@ -143,8 +147,9 @@ async function getHint() {
     </div>
     <p>{{ status }}</p>
     <Editor v-if="resultJSON" v-model="resultJSON" language="json" readonly></Editor>
-    <div v-if="message" class="message" :class="resultType">{{ message }}</div>
+    <div v-if="message" class="message" :class="messageType">{{ message }}</div>
   </div>
+  <confetti ref="confettiRef"></confetti>
 </template>
 
 <style scoped>

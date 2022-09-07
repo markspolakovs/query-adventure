@@ -80,6 +80,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/canvas-confetti@npm:^1.4.3":
+  version: 1.4.3
+  resolution: "@types/canvas-confetti@npm:1.4.3"
+  checksum: 2f74b7fd7355c6cb296b03e6f9f3ac4b3a25e883b85b50ecb61bb7cd11faafd3bdb0cd869c2b50b9f3421c11db251d240f54b1b4ffd59777992e067690c29551
+  languageName: node
+  linkType: hard
+
 "@vitejs/plugin-vue@npm:^3.0.3":
   version: 3.0.3
   resolution: "@vitejs/plugin-vue@npm:3.0.3"
@@ -374,6 +381,13 @@ __metadata:
     tar: ^6.1.11
     unique-filename: ^2.0.0
   checksum: d91409e6e57d7d9a3a25e5dcc589c84e75b178ae8ea7de05cbf6b783f77a5fae938f6e8fda6f5257ed70000be27a681e1e44829251bfffe4c10216002f8f14e6
+  languageName: node
+  linkType: hard
+
+"canvas-confetti@npm:^1.5.1":
+  version: 1.5.1
+  resolution: "canvas-confetti@npm:1.5.1"
+  checksum: e5932e34261615d629aac24aebad0472dd01c6cc3a3d6460ef37ab81eb533a2fdcec1cd842fcad6275f907fe378fc71cc90c91e1f997df63b0865ec2d5783ad8
   languageName: node
   linkType: hard
 
@@ -1467,7 +1481,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ui@workspace:."
   dependencies:
+    "@types/canvas-confetti": ^1.4.3
     "@vitejs/plugin-vue": ^3.0.3
+    canvas-confetti: ^1.5.1
     monaco-editor: 0.34.0
     typescript: ^4.6.4
     vite: ^3.0.7

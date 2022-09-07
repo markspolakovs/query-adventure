@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/canvas-confetti": "^1.4.3",
+    "canvas-confetti": "^1.5.1",
     "monaco-editor": "0.34.0",
     "vue": "^3.2.37"
   },
