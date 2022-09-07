@@ -29,6 +29,7 @@ var mgmtCollections = [...]string{
 }
 
 var mgmtIndexes = [...]string{
+	fmt.Sprintf("CREATE PRIMARY INDEX ON %s", cTeams),
 	fmt.Sprintf("CREATE INDEX idx_team_members ON `%s` (ALL members)", cTeams),
 	fmt.Sprintf(`CREATE INDEX idx_completedChallenges ON %s (team_id, dataset_id, query_id)`, cCompletedChallenges),
 }

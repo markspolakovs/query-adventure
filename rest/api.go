@@ -79,6 +79,10 @@ func (a *API) registerRoutes() {
 	a.e.POST("/api/dataset/:ds/query", a.handleQuery, auth.RequireUser())
 	a.e.POST("/api/dataset/:ds/:query/submitAnswer", a.handleSubmitAnswer, auth.RequireUser())
 
+	a.e.GET("/api/scoreboard", a.handleScoreboard, auth.RequireUser())
+	a.e.GET("/api/completedChallenges", a.handleCompletedChallenges, auth.RequireUser())
+	a.e.GET("/api/teams", a.handleTeams, auth.RequireUser())
+
 	a.e.GET("/api/signIn", a.am.HandleSignIn)
 	a.e.POST("/api/signIn", a.am.HandleSignIn)
 	a.e.GET("/api/signIn/redirect", a.am.HandleRedirect)
@@ -217,4 +221,28 @@ func (a *API) errorHandler(err error, c echo.Context) {
 		return
 	}
 	a.e.DefaultHTTPErrorHandler(err, c)
+}
+
+func (a *API) handleScoreboard(c echo.Context) error {
+	res, err := a.mCB.GetTeamScores(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, res)
+}
+
+func (a *API) handleCompletedChallenges(c echo.Context) error {
+	res, err := a.mCB.GetAllTeamCompleteChallenges(c.Request().Context(), a.ds)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, res)
+}
+
+func (a *API) handleTeams(c echo.Context) error {
+	res, err := a.mCB.GetAllTeams(c.Request().Context())
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, res)
 }

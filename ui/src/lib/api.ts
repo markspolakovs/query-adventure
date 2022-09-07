@@ -9,27 +9,27 @@ export class APIError extends Error {
   }
 }
 
-export function doAPIRequest(
+export function doAPIRequest<TR = unknown>(
   method: "POST" | "PUT" | "DELETE",
   path: string,
   expectedStatus: number,
   body?: Record<string, any>,
   noRedirect?: boolean
-): Promise<unknown>;
-export function doAPIRequest(
+): Promise<TR>;
+export function doAPIRequest<TR = unknown>(
   method: "GET",
   path: string,
   expectedStatus: number,
   body?: {},
   noRedirect?: boolean
-): Promise<unknown>;
-export async function doAPIRequest(
+): Promise<TR>;
+export async function doAPIRequest<TR = unknown>(
   method: "GET" | "POST" | "PUT" | "DELETE",
   path: string,
   expectedStatus: number,
   body?: Record<string, any>,
   noRedirect = false
-): Promise<unknown> {
+): Promise<TR> {
   let req;
   if (method === "GET") {
     req = fetch(`${apiPrefix}${path}`, {
@@ -65,6 +65,7 @@ export async function doAPIRequest(
     // Special-case for auth errors
     if (res.status === 401 && !noRedirect) {
       window.location.pathname = "/api/signIn";
+      // @ts-expect-error - we're gone anyway
       return null;
     }
 
