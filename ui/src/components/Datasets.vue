@@ -18,7 +18,7 @@ const active = ref<null | [string, string]>(null);
     :query-id="active[1]"
     @go-back="active = null"
   />
-  <div v-else>
+  <div v-else class="list">
     <h2>Datasets</h2>
     <b v-if="datasets === null">Loading, please wait...</b>
     <div v-if="datasets !== null" v-for="ds in datasets" :key="ds.id">
@@ -41,7 +41,10 @@ const active = ref<null | [string, string]>(null);
 </template>
 
 <style scoped>
-    ul li {
-        list-style-type: none;
-    }
+.list {
+  max-width: 64rem;
+}
+ul li {
+    list-style-type: none;
+}
 </style>

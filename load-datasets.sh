@@ -43,9 +43,11 @@ function create_bucket() {
 }
 
 function create_collection() {
-  if ! cc_out=$("$cbc" collection-manage -c "$cbh" -u "$cbu" -p "$cbp" --bucket tfgm --create-collection "_default.$1"); then
+  bucket=$1
+  collection=$2
+  if ! cc_out=$("$cbc" collection-manage -c "$cbh" -u "$cbu" -p "$cbp" --bucket "$bucket" --create-collection "_default.$collection"); then
     if echo "$cc_out" | grep -q 'already exists'; then
-      echo "Collection $1 already exists, skipping creation"
+      echo "Collection $bucket._default.$collection already exists, skipping creation"
     else
       echo "Failed to create collection $1" >&2
       echo "$cc_out" >&2
@@ -55,6 +57,15 @@ function create_collection() {
 }
 
 mkdir -p _tmp
+
+if [ ! -d "_tmp/f1" ]; then
+  echo "Please download the F1 dataset from TK and unzip it into _tmp/f1"
+  exit 1
+fi
+
+go run ./scripts/process_f1.go
+create_bucket f1 200 couchstore
+"$cbi" json -c "$cbh" -u "$cbu" -p "$cbp" -f list -d file://races.json -b f1 --generate-key "%raceId%"
 
 if [ ! -f ~/Downloads/TfGMgtfsnew.zip ]; then
   echo "Downloading TfGMgtfsnew.zip"
@@ -67,19 +78,19 @@ unzip -d _tmp/tfgm ~/Downloads/TfGMgtfsnew.zip
 echo "Importing TfGM data..."
 
 create_bucket tfgm 1024 magma
-create_collection agency
+create_collection tfgm agency
 "$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.agency" -g "%agency_id%" -d "file://$(pwd)/_tmp/tfgm/agency.txt"
-create_collection calendar_dates
+create_collection tfgm calendar_dates
 "$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.calendar_dates" -g "%service_id%::%date%" -d "file://$(pwd)/_tmp/tfgm/calendar_dates.txt"
-create_collection calendar
+create_collection tfgm calendar
 "$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.calendar" -g "%service_id%" -d "file://$(pwd)/_tmp/tfgm/calendar.txt"
-create_collection routes
+create_collection tfgm routes
 "$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.routes" -g "%route_id%" -d "file://$(pwd)/_tmp/tfgm/routes.txt"
-create_collection stop_times
+create_collection tfgm stop_times
 "$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.stop_times" -g "%trip_id%::%stop_id%::%stop_sequence%" -d "file://$(pwd)/_tmp/tfgm/stop_times.txt"
-create_collection stops
+create_collection tfgm stops
 "$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.stops" -g "%stop_id%" -d "file://$(pwd)/_tmp/tfgm/stops.txt"
-create_collection trips
+create_collection tfgm trips
 "$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.trips" -g "%trip_id%" -d "file://$(pwd)/_tmp/tfgm/trips.txt"
 
 if [ -n "${CLEANUP:-}" ]; then

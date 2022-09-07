@@ -94,7 +94,7 @@ async function doCheck() {
   <div v-else>
     <h1>{{ query.name }}</h1>
     <button @click="$emit('goBack')">Go Back</button>
-    <p>{{ query.challenge }}</p>
+    <p class="desc">{{ query.challenge }}</p>
 
     <div v-if="query.hints !== null">
       <button v-if="hintIndex < query.hints.length" class="small" @click="hintIndex++">Stuck? Get a hint!</button>
@@ -121,6 +121,9 @@ async function doCheck() {
 </template>
 
 <style scoped>
+.desc {
+  max-width: 48rem;
+}
 .check {
   background-color: #104f5f;
   color: white;

@@ -6,6 +6,7 @@ require (
 	github.com/alecthomas/kong v0.6.1
 	github.com/coreos/go-oidc/v3 v3.3.0
 	github.com/couchbase/gocb/v2 v2.5.2
+	github.com/gocarina/gocsv v0.0.0-20220823132111-71f3a5cb2654
 	github.com/gorilla/sessions v1.2.1
 	github.com/labstack/echo-contrib v0.13.0
 	github.com/labstack/echo/v4 v4.8.0

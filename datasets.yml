@@ -138,3 +138,42 @@
 #        d = 6371e3 * c
 #        where d > 20000
 #        order by d
+
+- id: f1
+  name: Formula 1
+  description: |-
+    Results of all [most] F1 races, including lap-by-lap timings since 1996. Originally sourced from http://ergast.com/mrd/,
+    converted into JSON.
+  keyspace: f1._default
+  queries:
+
+    - id: avg-races
+      name: Average Races
+      challenge: |-
+        Find the average number of races per year. Return just the number (no object wrapping it).
+      points: 10
+      query: |-
+        with years as (select year, count(year) as count from _default group by year)
+        select raw avg(years.count) from years
+      hints:
+        - Trying to do "SELECT AVG(COUNT(...))" won't work - consider a common table expression or subquery.
+
+    - id: commentator-last-races
+      name: Driver to Commentator
+      challenge: |-
+        Find the date of the last race of each of Sky Sports F1's commentators
+        (David Croft, Martin Brundle, Paul di Resta, Ted Kravitz, Anthony Davidson, Karun Chandhok, Johnny Herbert,
+        Damon Hill, Jenson Button, Nico Rosberg), in alphabetical order of their first names.
+      points: 30
+      query: |-
+        SELECT name,
+               MAX(d.date) AS date
+        FROM _default d
+        UNNEST d.results r
+        LET name = (r.driver.Forename || " " || r.driver.Surname)
+        WHERE name IN ["Martin Brundle", "Paul di Resta", "Anthony Davidson", "Karun Chandhok", "Johnny Herbert", "Damon Hill", "Jenson Button", "Nico Rosberg"]
+        GROUP BY name
+        ORDER BY name
+      hints:
+        - Not all of the commentators have actually driven in F1.
+        - UNNEST may be helpful.
