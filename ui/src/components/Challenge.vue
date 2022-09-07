@@ -2,6 +2,7 @@
 import { ref, watch, watchEffect } from "vue";
 import { APIError, doAPIRequest } from "../lib/api";
 import { Dataset, datasets, Query } from "../lib/datasetState";
+import Editor from "./Editor.vue";
 
 defineEmits(["goBack"]);
 const props = defineProps<{
@@ -12,9 +13,10 @@ const props = defineProps<{
 const input = ref("");
 const status = ref("");
 const resultJSON = ref("");
+const message = ref("");
 const resultType = ref<"success" | "error" | null>(null);
 const loading = ref(false);
-const hintIndex = ref(0);
+const messageType = ref(0);
 
 const dataset = ref<Dataset | null>(null);
 const query = ref<Query | null>(null);
@@ -70,15 +72,15 @@ async function doCheck() {
         statement: input.value,
       }
     );
-    resultJSON.value = JSON.stringify(result, null, 2); // FIXME this will change
-    resultType.value = "success"; // if the API didn't error we know it's correct
+    message.value = JSON.stringify(result, null, 2); // FIXME this will change
+    messageType.value = "success"; // if the API didn't error we know it's correct
   } catch (e) {
     if (e instanceof APIError) {
-      resultJSON.value = e.message;
+      message.value = e.message;
     } else if (e instanceof Error) {
-      resultJSON.value = e.toString();
+      message.value = e.toString();
     } else {
-      resultJSON.value = String(e);
+      message.value = String(e);
     }
     resultType.value = "error";
   } finally {
@@ -100,13 +102,13 @@ async function getHint() {
     datasets.value![dsIdx].queries[qIdx] = result;
   } catch (e) {
     if (e instanceof APIError) {
-      resultJSON.value = e.message;
+      message.value = e.message;
     } else if (e instanceof Error) {
-      resultJSON.value = e.toString();
+      message.value = e.toString();
     } else {
-      resultJSON.value = String(e);
+      message.value = String(e);
     }
-    resultType.value = "error";
+    messageType.value = "error";
   } finally {
     loading.value = false;
   }
@@ -129,12 +131,10 @@ async function getHint() {
       </ul>
     </div>
 
-    <textarea
+    <Editor
       v-model="input"
-      placeholder="SELECT * FROM ..."
-      rows="5"
-      cols="80"
-    ></textarea>
+      language="sql"
+    ></Editor>
     <div>
       <button :disabled="loading" @click="doQuery">Run Query</button>
       <button :disabled="loading" @click="doCheck" class="check">
@@ -142,7 +142,8 @@ async function getHint() {
       </button>
     </div>
     <p>{{ status }}</p>
-    <div v-if="resultJSON" class="output" :class="resultType">{{ resultJSON }}</div>
+    <Editor v-if="resultJSON" v-model="resultJSON" language="json" readonly></Editor>
+    <div v-if="message" class="message" :class="resultType">{{ message }}</div>
   </div>
 </template>
 
@@ -160,12 +161,9 @@ async function getHint() {
   color: white;
   font-weight: bold;
 }
-.output {
-  /*overflow: auto;*/
+.message {
+  max-width: 80vw;
   word-wrap: break-word;
-  text-align: start;
-  padding: 0.4rem;
-  font-family: monospace;
 }
 .error {
   background-color: #6b0700;
