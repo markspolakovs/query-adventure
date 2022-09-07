@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"query-adventure/data"
@@ -149,4 +150,62 @@ func (m *ManagementConnection) GetTeamScores(ctx context.Context) (map[string]ui
 		return nil, fmt.Errorf("points query close: %w", err)
 	}
 	return result, nil
+}
+
+func (m *ManagementConnection) GetUsedHints(ctx context.Context, datasetID, queryID, teamID string) (uint, error) {
+	result, _, err := m.getUsedHints(ctx, datasetID, queryID, teamID)
+	if errors.Is(err, gocb.ErrDocumentNotFound) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	return result, nil
+}
+
+// UseHint marks one hint as used. Returns the current number of hints, whether one was actually used, and the error.
+// Will return (curr, false, nil) if using one more hint would take the team over the max.
+func (m *ManagementConnection) UseHint(ctx context.Context, datasetID, queryID, teamID string, max int) (uint, bool, error) {
+	curr, cas, err := m.getUsedHints(ctx, datasetID, queryID, teamID)
+	if errors.Is(err, gocb.ErrDocumentNotFound) {
+		if max == 0 {
+			return 0, false, nil
+		}
+		_, err = m.s.Collection(cUsedHints).Insert(usedHintsKey(datasetID, queryID, teamID), 1, &gocb.InsertOptions{
+			Context: ctx,
+		})
+	} else if err != nil {
+		return 0, false, err
+	} else {
+		if curr+1 > uint(max) {
+			return 0, false, nil
+		}
+		_, err = m.s.Collection(cUsedHints).Replace(usedHintsKey(datasetID, queryID, teamID), curr+1, &gocb.ReplaceOptions{
+			Context: ctx,
+			Cas:     cas,
+		})
+	}
+	if err != nil {
+		return 0, false, fmt.Errorf("failed to execute insert/replace: %w", err)
+	}
+	return curr + 1, true, nil
+}
+
+func (m *ManagementConnection) getUsedHints(ctx context.Context, datasetID, queryID, teamID string) (uint, gocb.Cas, error) {
+	res, err := m.s.Collection(cUsedHints).Get(usedHintsKey(datasetID, queryID, teamID), &gocb.GetOptions{
+		Context: ctx,
+	})
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to get used hints: %w", err)
+	}
+	var result uint
+	err = res.Content(&result)
+	if err != nil {
+		return 0, 0, fmt.Errorf("failed to parse used hints: %w", err)
+	}
+	return result, res.Cas(), nil
+}
+
+func usedHintsKey(datasetID, queryID, teamID string) string {
+	return fmt.Sprintf("%s::%s::%s", datasetID, queryID, teamID)
 }

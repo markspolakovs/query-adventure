@@ -2,12 +2,15 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/couchbase/gocb/v2"
+	"github.com/labstack/echo/v4"
 )
 
 type QueryConnection struct {
@@ -63,6 +66,9 @@ func (c *QueryConnection) ExecuteAndVerifyQuery(ctx context.Context, keyspace, t
 		Adhoc:   true,
 		Timeout: c.queryTimeout,
 	})
+	if errors.Is(err, gocb.ErrAmbiguousTimeout) {
+		return echo.NewHTTPError(http.StatusBadRequest, "Your query timed out.")
+	}
 	if err != nil {
 		return fmt.Errorf("query 2 error: %w", err)
 	}

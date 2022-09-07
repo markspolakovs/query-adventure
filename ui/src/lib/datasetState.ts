@@ -15,6 +15,7 @@ export interface Query {
   challenge: string;
   points: number;
   hints: string[] | null;
+  numHints: number;
   complete: boolean;
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 
@@ -19,6 +20,7 @@ type RunCmd struct {
 }
 
 func (r *RunCmd) Run(g *cfg.Globals) error {
+	log.Println("Connecting to CB...")
 	qCB, mCB, err := db.Connect(g)
 	if err != nil {
 		return err
@@ -26,16 +28,19 @@ func (r *RunCmd) Run(g *cfg.Globals) error {
 	defer qCB.Close()
 	defer mCB.Close()
 
+	log.Println("Loading datasets...")
 	datasets, err := data.LoadDatasets(g)
 	if err != nil {
 		return err
 	}
 
+	log.Println("Constructing authenticator...")
 	authn, err := auth.NewGoogleAuthenticator(r.GoogleCfg)
 	if err != nil {
 		return err
 	}
 
+	log.Println("Building API...")
 	api := rest.NewAPI(g, qCB, mCB, datasets, authn)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)

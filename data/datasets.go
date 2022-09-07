@@ -46,27 +46,14 @@ func (d Datasets) DatasetByID(id string) (Dataset, bool) {
 	return Dataset{}, false
 }
 
-func (d Datasets) FilterQueries() Datasets {
-	res := make(Datasets, len(d))
-	for id, ds := range d {
-		res[id] = Dataset{
-			ID:          ds.ID,
-			Name:        ds.Name,
-			Description: ds.Description,
-			Keyspace:    ds.Keyspace,
-			Queries:     make([]Query, len(ds.Queries)),
-		}
-		for qid, q := range ds.Queries {
-			res[id].Queries[qid] = Query{
-				ID:        q.ID,
-				Name:      q.Name,
-				Challenge: q.Challenge,
-				Points:    q.Points,
-				Hints:     q.Hints, // FIXME
-			}
-		}
+func (q Query) FilterForPublic(usedHints uint) Query {
+	return Query{
+		ID:        q.ID,
+		Name:      q.Name,
+		Challenge: q.Challenge,
+		Points:    q.Points,
+		Hints:     q.Hints[:usedHints],
 	}
-	return res
 }
 
 func LoadDatasets(g *cfg.Globals) (Datasets, error) {

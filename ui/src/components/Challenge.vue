@@ -85,6 +85,32 @@ async function doCheck() {
     loading.value = false;
   }
 }
+
+async function getHint() {
+  try {
+    loading.value = true;
+    const result = await doAPIRequest(
+        "POST",
+        `/dataset/${props.datasetId}/${props.queryId}/useHint`,
+        200,
+        {}
+    ) as Query;
+    const dsIdx = datasets.value!.findIndex(x => x.id === props.datasetId);
+    const qIdx = datasets.value![dsIdx].queries.findIndex(x => x.id === props.queryId);
+    datasets.value![dsIdx].queries[qIdx] = result;
+  } catch (e) {
+    if (e instanceof APIError) {
+      resultJSON.value = e.message;
+    } else if (e instanceof Error) {
+      resultJSON.value = e.toString();
+    } else {
+      resultJSON.value = String(e);
+    }
+    resultType.value = "error";
+  } finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -97,9 +123,9 @@ async function doCheck() {
     <p class="desc">{{ query.challenge }}</p>
 
     <div v-if="query.hints !== null">
-      <button v-if="hintIndex < query.hints.length" class="small" @click="hintIndex++">Stuck? Get a hint!</button>
+      <button v-if="query.hints.length < query.numHints" class="small" @click="getHint">Stuck? Get a hint!</button>
       <ul>
-        <li v-for="hint  in query.hints.slice(0, hintIndex)">{{hint}}</li>
+        <li v-for="hint  in query.hints">{{hint}}</li>
       </ul>
     </div>
 
@@ -126,6 +152,11 @@ async function doCheck() {
 }
 .check {
   background-color: #104f5f;
+  color: white;
+  font-weight: bold;
+}
+.check[disabled] {
+  background-color: #495057;
   color: white;
   font-weight: bold;
 }

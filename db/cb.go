@@ -9,6 +9,10 @@ import (
 )
 
 func Connect(g *cfg.Globals) (*QueryConnection, *ManagementConnection, error) {
+	txnOptions := gocb.TransactionsConfig{}
+	if g.DB.TxnsNoDurable {
+		txnOptions.DurabilityLevel = gocb.DurabilityLevelNone
+	}
 	qCluster, err := gocb.Connect(g.DB.ConnectionString, gocb.ClusterOptions{
 		Username: g.DB.QueryUsername,
 		Password: g.DB.QueryPassword,
@@ -17,8 +21,9 @@ func Connect(g *cfg.Globals) (*QueryConnection, *ManagementConnection, error) {
 		return nil, nil, fmt.Errorf("failed to connect using query creds: %w", err)
 	}
 	mCluster, err := gocb.Connect(g.DB.ConnectionString, gocb.ClusterOptions{
-		Username: g.DB.ManagementUsername,
-		Password: g.DB.ManagementPassword,
+		Username:           g.DB.ManagementUsername,
+		Password:           g.DB.ManagementPassword,
+		TransactionsConfig: txnOptions,
 	})
 	if err != nil {
 		_ = qCluster.Close(nil)

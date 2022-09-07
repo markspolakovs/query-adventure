@@ -14,11 +14,12 @@ type DBCfg struct {
 	ManagementPassword string `default:"password"`
 	ManagementBucket   string `default:"mgmt"`
 	ManagementScope    string `default:"_default"`
+	TxnsNoDurable      bool   `default:"false"`
 }
 
 type Globals struct {
 	ConfigFile   kong.ConfigFlag
-	QueryTimeout time.Duration            `default:"5s"`
+	QueryTimeout time.Duration            `default:"15s"`
 	DatasetsPath string                   `default:"datasets.yml"`
 	RateLimits   map[string]time.Duration `default:"query=5s;check=30s"`
 	SessionKey   string                   `default:"CHANGEME"`

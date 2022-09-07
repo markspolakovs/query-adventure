@@ -21,11 +21,13 @@ func (m *ManagementConnection) Close() error {
 const (
 	cTeams               string = "teams"
 	cCompletedChallenges string = "completedChallenges"
+	cUsedHints           string = "usedHints"
 )
 
 var mgmtCollections = [...]string{
 	cTeams,
 	cCompletedChallenges,
+	cUsedHints,
 }
 
 var mgmtIndexes = [...]string{

@@ -78,6 +78,7 @@ func (a *API) registerRoutes() {
 	a.e.GET("/api/datasets", a.handleGetDatasets, auth.RequireUser())
 	a.e.POST("/api/dataset/:ds/query", a.handleQuery, auth.RequireUser())
 	a.e.POST("/api/dataset/:ds/:query/submitAnswer", a.handleSubmitAnswer, auth.RequireUser())
+	a.e.POST("/api/dataset/:ds/:query/useHint", a.handleUseHint, auth.RequireUser())
 
 	a.e.GET("/api/scoreboard", a.handleScoreboard, auth.RequireUser())
 	a.e.GET("/api/completedChallenges", a.handleCompletedChallenges, auth.RequireUser())
@@ -106,7 +107,7 @@ func (a *API) handleQuery(c echo.Context) error {
 		return err
 	}
 
-	err = a.casQueryLimit(c)
+	err = a.casQueryLimit(c) // TODO: index creation should be different
 	if err != nil {
 		return err
 	}
@@ -122,8 +123,8 @@ func (a *API) handleQuery(c echo.Context) error {
 }
 
 type CorrectAnswerResponse struct {
-	OK     bool `json:"ok"`
-	Points uint `json:"points"`
+	OK     bool    `json:"ok"`
+	Points float64 `json:"points"`
 }
 
 func (a *API) handleSubmitAnswer(c echo.Context) error {
@@ -150,6 +151,11 @@ func (a *API) handleSubmitAnswer(c echo.Context) error {
 		return fmt.Errorf("failed to get team: %w", err)
 	}
 
+	hints, err := a.mCB.GetUsedHints(c.Request().Context(), ds.ID, query.ID, team.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get hints total: %w", err)
+	}
+
 	err = a.casCheckLimit(c, query)
 	if err != nil {
 		return err
@@ -160,14 +166,14 @@ func (a *API) handleSubmitAnswer(c echo.Context) error {
 		return err
 	}
 
-	err = a.mCB.CompleteChallenge(c.Request().Context(), ds, query, team, user.Email)
+	cc, err := a.mCB.CompleteChallenge(c.Request().Context(), ds, query, team, user.Email, body.Statement, hints)
 	if err != nil {
 		return fmt.Errorf("failed to mark challenge %s.%s as complete: %w", ds.ID, query.ID, err)
 	}
 
 	return c.JSON(http.StatusOK, CorrectAnswerResponse{
 		OK:     true,
-		Points: query.Points,
+		Points: cc.FinalPoints,
 	})
 }
 
@@ -179,10 +185,11 @@ type apiDataset struct {
 type apiQuery struct {
 	data.Query
 	Complete bool `json:"complete"`
+	NumHints int  `json:"numHints"`
 }
 
 func (a *API) handleGetDatasets(c echo.Context) error {
-	rawData := a.ds.FilterQueries()
+	rawData := a.ds
 	user := auth.MustUser(c)
 	team, err := a.mCB.GetTeamForUser(c.Request().Context(), user.Email)
 	if err != nil {
@@ -199,14 +206,55 @@ func (a *API) handleGetDatasets(c echo.Context) error {
 			Queries: make([]apiQuery, 0, len(d.Queries)),
 		}
 		for _, q := range d.Queries {
-			ds.Queries = append(ds.Queries, apiQuery{
-				Query:    q,
-				Complete: slices.Contains(complete[ds.ID], q.ID),
-			})
+			usedHints, err := a.mCB.GetUsedHints(c.Request().Context(), d.ID, q.ID, team.ID)
+			if err != nil {
+				return fmt.Errorf("failed to get used hints for %s.%s: %w", ds.ID, q.ID, err)
+			}
+			ds.Queries = append(ds.Queries, makeAPIQuery(d, q, usedHints, complete))
 		}
 		result = append(result, ds)
 	}
 	return c.JSON(http.StatusOK, result)
+}
+
+func makeAPIQuery(ds data.Dataset, q data.Query, usedHints uint, complete map[string][]string) apiQuery {
+	return apiQuery{
+		Query:    q.FilterForPublic(usedHints),
+		NumHints: len(q.Hints),
+		Complete: slices.Contains(complete[ds.ID], q.ID),
+	}
+}
+
+func (a *API) handleUseHint(c echo.Context) error {
+	ds, ok := a.ds.DatasetByID(c.Param("ds"))
+	if !ok {
+		return echo.NewHTTPError(http.StatusNotFound, "no such dataset")
+	}
+	query, ok := ds.QueryByID(c.Param("query"))
+	if !ok {
+		return echo.NewHTTPError(http.StatusNotFound, "query not found")
+	}
+
+	user := auth.MustUser(c)
+	team, err := a.mCB.GetTeamForUser(c.Request().Context(), user.Email)
+	if err != nil {
+		return fmt.Errorf("failed to get team: %w", err)
+	}
+
+	curr, used, err := a.mCB.UseHint(c.Request().Context(), ds.ID, query.ID, team.ID, len(query.Hints))
+	if err != nil {
+		return fmt.Errorf("failed to use hint: %w", err)
+	}
+	if !used {
+		return echo.NewHTTPError(http.StatusBadRequest, "all hints already used")
+	}
+
+	complete, err := a.mCB.GetTeamCompleteChallenges(c.Request().Context(), team)
+	if err != nil {
+		return fmt.Errorf("failed to find complete challenges: %w", err)
+	}
+
+	return c.JSON(http.StatusOK, makeAPIQuery(ds, query, curr, complete))
 }
 
 func (a *API) handleMe(c echo.Context) error {
