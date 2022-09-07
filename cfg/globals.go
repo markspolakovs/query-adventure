@@ -18,11 +18,13 @@ type DBCfg struct {
 }
 
 type Globals struct {
-	ConfigFile   kong.ConfigFlag
-	QueryTimeout time.Duration            `default:"15s"`
-	DatasetsPath string                   `default:"datasets.yml"`
-	RateLimits   map[string]time.Duration `default:"query=5s;check=30s"`
-	SessionKey   string                   `default:"CHANGEME"`
-	DB           DBCfg                    `embed:"" prefix:"db."`
-	HTTPPort     int                      `default:"7091"`
+	ConfigFile               kong.ConfigFlag
+	QueryTimeout             time.Duration            `default:"15s"`
+	DatasetsPath             string                   `default:"datasets.yml"`
+	RateLimits               map[string]time.Duration `default:"query=5s;check=30s"`
+	SessionKey               string                   `default:"CHANGEME"`
+	DB                       DBCfg                    `embed:"" prefix:"db."`
+	HTTPPort                 int                      `default:"7091"`
+	ScoreHintMultiplier      float64                  `default:"0.95"`
+	ScoreFirstTeamMultiplier float64                  `default:"1.10"`
 }

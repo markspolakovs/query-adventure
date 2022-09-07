@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"query-adventure/cfg"
 	"query-adventure/data"
 
 	"github.com/couchbase/gocb/v2"
@@ -27,16 +28,11 @@ type CompleteChallenge struct {
 	FinalPoints float64   `json:"points"`
 }
 
-const (
-	hintMultiplier      = 0.95
-	firstTeamMultiplier = 1.10
-)
-
-func (cc *CompleteChallenge) calculateFinalPoints() {
+func (cc *CompleteChallenge) calculateFinalPoints(g *cfg.Globals) {
 	base := float64(cc.RawPoints)
-	base *= math.Pow(hintMultiplier, float64(cc.HintsUsed))
+	base *= math.Pow(g.ScoreHintMultiplier, float64(cc.HintsUsed))
 	if cc.First {
-		base *= firstTeamMultiplier
+		base *= g.ScoreFirstTeamMultiplier
 	}
 	cc.FinalPoints = math.Round(base*10) / 10
 }
@@ -45,7 +41,7 @@ func completeChallengeDocKey(teamID, datasetID, queryID string) string {
 	return fmt.Sprintf("%s::%s::%s", teamID, datasetID, queryID)
 }
 
-func (m *ManagementConnection) CompleteChallenge(ctx context.Context, dataset data.Dataset, query data.Query, team Team, email string, rawQuery string, hintsUsed uint) (CompleteChallenge, error) {
+func (m *ManagementConnection) CompleteChallenge(ctx context.Context, g *cfg.Globals, dataset data.Dataset, query data.Query, team Team, email string, rawQuery string, hintsUsed uint) (CompleteChallenge, error) {
 	now := time.Now()
 	var cc CompleteChallenge
 	_, err := m.cluster.Transactions().Run(func(tx *gocb.TransactionAttemptContext) error {
@@ -75,7 +71,7 @@ func (m *ManagementConnection) CompleteChallenge(ctx context.Context, dataset da
 			return fmt.Errorf("failed to parse other team query result: %w", err)
 		}
 		cc.First = result.Count == 0
-		cc.calculateFinalPoints()
+		cc.calculateFinalPoints(g)
 		id := completeChallengeDocKey(team.ID, dataset.ID, query.ID)
 		_, err = tx.Insert(m.s.Collection(cCompletedChallenges), id, cc)
 		if errors.Is(err, gocb.ErrDocumentExists) {

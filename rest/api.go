@@ -166,7 +166,7 @@ func (a *API) handleSubmitAnswer(c echo.Context) error {
 		return err
 	}
 
-	cc, err := a.mCB.CompleteChallenge(c.Request().Context(), ds, query, team, user.Email, body.Statement, hints)
+	cc, err := a.mCB.CompleteChallenge(c.Request().Context(), a.g, ds, query, team, user.Email, body.Statement, hints)
 	if err != nil {
 		return fmt.Errorf("failed to mark challenge %s.%s as complete: %w", ds.ID, query.ID, err)
 	}
