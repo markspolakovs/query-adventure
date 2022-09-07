@@ -6,6 +6,20 @@
   keyspace: travel-sample.inventory
   queries:
 
+    - id: countries-with-airports
+      name: Countries With Airports
+      challenge: |-
+        Find the 10 countries with the most airports. Include the name of the country and the number of airports.
+      points: 5
+      query: |-
+        SELECT country, count(country) AS count
+        FROM airport
+        GROUP BY country
+        ORDER BY count DESC
+        LIMIT 10
+      hints:
+        - You'll need to use a GROUP BY.
+
     - id: uk-airports
       name: UK Airports
       challenge: |-
@@ -22,19 +36,21 @@
         - The data is messy and includes some railway stations as well as airports.
         - '"All Airports" is not an airport.'
 
-    - id: countries-with-airports
-      name: Countries With Airports
+    - id: london-hotels
+      name: Best London Hotels
       challenge: |-
-        Find the 10 countries with the most airports. Include the name of the country and the number of airports.
-      points: 10
+        Find all hotels in London, in order of average overall rating (across all reviews for that hotel), highest to
+        lowest. Include the name of the hotel and the average overall rating, leaving hotels with no reviews at the end.
+        If multiple hotels have the same average rating, return them in alphabetical order.
+      points: 15
       query: |-
-        SELECT country, count(country) AS count
-        FROM airport
-        GROUP BY country
-        ORDER BY count DESC
-        LIMIT 10
+        SELECT name, ARRAY_AVG(ARRAY r.ratings.Overall FOR r IN t.reviews END) AS ratings_overall
+        FROM hotel AS t
+        WHERE t.city = "London"
+        ORDER BY ratings_overall DESC NULLS LAST, name
       hints:
-        - You'll need to use a GROUP BY.
+        - You could use either the AVG function with a subquery, or the ARRAY_AVG function with an array range transformation expression.
+        - ORDER BY takes a parameter to control where null values get placed in the sort order.
 
     - id: late-fliers
       name: Late Fliers
@@ -118,9 +134,9 @@
         ORDER BY stop_times.arrival_time
         LIMIT 10
       hints:
+        - "The three closest stops are Piccadilly Gardens, Market Street, and Piccadilly."
         - You may need to use at least two JOIN statements.
         - The dataset includes separate schedules for Mondays-Fridays and Saturdays-Sundays. Make sure you use the right one.
-        - "The three closest stops are Piccadilly Gardens, Market Street, and Piccadilly."
 
 #    - id: far-away-bus-stops
 #      name: Far-Away Bus Stops
@@ -142,7 +158,7 @@
   name: Formula 1
   description: |-
     Results of all [most] F1 races, including lap-by-lap timings since 1996. Originally sourced from http://ergast.com/mrd/,
-    converted into JSON.
+    converted into JSON. Data up to date as of the 2022 Hungarian Grand Prix.
   keyspace: f1._default
   queries:
 
@@ -156,6 +172,52 @@
         select raw avg(years.count) from years
       hints:
         - Trying to do "SELECT AVG(COUNT(...))" won't work - consider a common table expression or subquery.
+
+    - id: ricciardo-last
+      name: Danny Ric's Last Win
+      challenge: |-
+        Find the date of the last race that Daniel Ricciardo won.
+      points: 15
+      query: |-
+        SELECT RAW r.date FROM _default r
+        WHERE ANY res IN r.results SATISFIES res.driver.DriverRef = "ricciardo" AND res.position = 1 END
+        ORDER BY r.date DESC
+        LIMIT 1
+
+    - id: last-winners
+      name: Race Winners
+      challenge: |-
+        Find the names of the last 10 people to win a F1 race, along with the date of the last race they won, latest to oldest.
+      points: 20
+      query: |-
+        SELECT winner, MAX(r.date) AS date FROM _default r
+        LET winner = FIRST res.driver.Forename || " " || res.driver.Surname FOR res IN r.results WHEN res.position = 1 END
+        WHERE ARRAY_LENGTH(r.results) > 0
+        GROUP BY winner
+        ORDER BY date desc
+        LIMIT 10
+      hints:
+        - To get the driver's full name, use `r.driver.Forename || " " || r.driver.Surname` (where `r` is your collection alias).
+        - The dataset includes records for races that haven't happened yet, and thus have no results. You'll need to filter those out.
+        - The question asks for the last 10 people, not the last 10 races - you'll need to use a GROUP BY.
+
+    - id: monza-record
+      name: Monza Lap Record
+      challenge: |-
+        Find the fastest lap ever done around the Autodromo Nazionale di Monza, along with the date of the race and the surname of the driver to set it.
+        Return the lap time in the format "<m>m<s>s.<ms>", where <m/s/ms> are the minutes, seconds, and milliseconds.
+      points: 20
+      query: |-
+        select l.driver.Surname as surname, duration_to_str(l.time_millis * 1000 * 1000) as time, r.date from _default r
+        unnest array_flatten(r.lap_times, 1) l
+        where r.circuit.circuitRef = "monza"
+        order by l.time_millis
+        limit 1
+      hints:
+        - The lap_times field is structured as a nested array, where each outer array is one lap and each object in the inner array is one driver's time.
+        - The ARRAY_FLATTEN function in conjunction with UNNEST may be useful.
+        - ORDER BY time might not work right because N1QL sorts alphabetically, try time_millis instead.
+        - The DURATION_TO_STR function will output the duration in the right format automatically, though pay attention to the units.
 
     - id: commentator-last-races
       name: Driver to Commentator
@@ -176,3 +238,4 @@
       hints:
         - Not all of the commentators have actually driven in F1.
         - UNNEST may be helpful.
+        - You can use `WHERE name IN ["foo", "bar"]` to avoid having to write 10 WHERE/AND clauses.
