@@ -126,18 +126,18 @@ func (m *ManagementConnection) GetAllTeamCompleteChallenges(ctx context.Context,
 	return result, nil
 }
 
-func (m *ManagementConnection) GetTeamScores(ctx context.Context) (map[string]uint, error) {
+func (m *ManagementConnection) GetTeamScores(ctx context.Context) (map[string]float64, error) {
 	qr, err := m.s.Query(fmt.Sprintf(`SELECT team_id, SUM(points) AS points FROM %s GROUP BY team_id`, cCompletedChallenges), &gocb.QueryOptions{
 		Context: ctx,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute points query: %w", err)
 	}
-	result := make(map[string]uint)
+	result := make(map[string]float64)
 	for qr.Next() {
 		var row struct {
-			TeamID string `json:"team_id"`
-			Points uint   `json:"points"`
+			TeamID string  `json:"team_id"`
+			Points float64 `json:"points"`
 		}
 		err = qr.Row(&row)
 		if err != nil {

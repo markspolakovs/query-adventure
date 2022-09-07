@@ -48,20 +48,18 @@ const incomplete = computed(() => {
     return {};
   }
   console.log(completedChallenges.value);
-  let result: Record<string, string[]> = {};
+  let result: Record<string, Record<string, string[]>> = {};
   for (const ds of Object.keys(completedChallenges.value)) {
-    for (const q of Object.keys(completedChallenges.value[ds])) {
-      let complete = 0;
-      for (const team of Object.keys(completedChallenges.value[ds][q])) {
-        if (completedChallenges.value[ds][q][team]) {
-          complete++;
-        }
-        console.log(ds, q, complete);
-        if (complete === 0) {
-          const dsRec = datasets.value.find(x => x.id === ds)!;
-          const qName = dsRec.queries.find(x => x.id === q)!.name;
-          result[dsRec.name] ||= [];
-          result[dsRec.name].push(qName);
+    const dsName = datasets.value!.find(x => x.id === ds)!.name;
+    result[dsName] = {};
+    // @ts-expect-error go home typescript, you're drunk
+    for (const qId of Object.keys(completedChallenges.value[ds])) {
+      // @ts-expect-error
+      const qName = datasets.value!.find(x => x.id === ds)!.queries.find(x => x.id === qId)!.name;
+      result[dsName][qName] = [];
+      for (const team of Object.keys(completedChallenges.value[ds][qId])) {
+        if (!completedChallenges.value[ds][qId][team]) {
+          result[dsName][qName].push(teamNames.value[team]);
         }
       }
     }
@@ -141,7 +139,7 @@ onUnmounted(() =>{
 <template>
   <div class="wrapper">
     <Transition>
-      <div v-if="page === 0" class="slide">
+      <div v-if="page === 0" class="slide" id="1">
         <h1>SCORES</h1>
         <table>
           <tr v-for="(points, teamId) in scoreboard">
@@ -150,7 +148,7 @@ onUnmounted(() =>{
           </tr>
         </table>
       </div>
-      <div v-else-if="page === 1" class="slide">
+      <div v-else-if="page === 1" class="slide" id="2">
         <h1>COMPLETED CHALLENGES</h1>
        <table>
          <tr v-for="(qs, teamId) in completeByTeam">
@@ -159,14 +157,17 @@ onUnmounted(() =>{
          </tr>
        </table>
       </div>
-      <div v-else-if="page === 2" class="slide">
+      <div v-else-if="page === 2" class="slide" id="3">
         <h1>REMAINING CHALLENGES</h1>
         <div>
           <div v-for="(queries, dsName) in incomplete">
             <h2>{{ dsName }}</h2>
-            <ul style="list-style-type: none">
-              <li v-for="q in queries">{{ q }}</li>
-            </ul>
+            <table>
+              <tr v-for="(teams, qName) in queries">
+                <td v-if="teams.length > 0">{{ qName }}</td>
+                <td>{{ teams.join(", ") }}</td>
+              </tr>
+            </table>
           </div>
         </div>
       </div>
@@ -188,10 +189,12 @@ onUnmounted(() =>{
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 50vw;
 }
 table {
   font-size: 2rem;
   margin: 0 !important;
+  width: 100%;
 }
 td:nth-child(1) {
   text-align: left;
