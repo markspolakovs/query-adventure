@@ -97,7 +97,7 @@
         - The Metrolink agency ID is METL.
 
     - id: departure-board
-      name: Departure Board
+      name: Take Me Home, Metrolink
       challenge: |-
         Find the next 10 departures from the three closest tram stops to the Couchbase Manchester office (as the crow flies from the front door).
         Include the departure time, stop name, and destination of the tram. Order by departure time.
@@ -112,8 +112,7 @@
         WHERE stop_times.arrival_time > NOW_STR("hh:mm:ss")
           AND stop_times.arrival_time < MILLIS_TO_STR(NOW_MILLIS() + 15 * 60 * 1000, "hh:mm:ss")
           AND stop_times.trip_id LIKE "%MF%"
-          AND (stops.stop_name LIKE "Exchange Square%"
-            OR stops.stop_name LIKE "Piccadilly Gardens%"
+          AND (stops.stop_name LIKE "Piccadilly%"
             OR stops.stop_name LIKE "Market Street%")
           AND stops.stop_name LIKE "%Metrolink)"
         ORDER BY stop_times.arrival_time
@@ -121,7 +120,7 @@
       hints:
         - You may need to use at least two JOIN statements.
         - The dataset includes separate schedules for Mondays-Fridays and Saturdays-Sundays. Make sure you use the right one.
-        - "The three closest stops are Piccadilly Gardens, Market Street, and Exchange Square (St Peter's Square is a few metres further)."
+        - "The three closest stops are Piccadilly Gardens, Market Street, and Piccadilly."
 
 #    - id: far-away-bus-stops
 #      name: Far-Away Bus Stops
