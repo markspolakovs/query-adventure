@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, watchEffect } from "vue";
-import { APIError, doAPIRequest } from "../lib/api";
-import { Dataset, datasets, Query } from "../lib/datasetState";
+import {APIError, doAPIRequest, formatError} from "../lib/api";
+import { Dataset, useDatasets, Query } from "../lib/datasetState";
 import Confetti from "./Confetti.vue";
 import Editor from "./Editor.vue";
 
@@ -11,23 +11,23 @@ const props = defineProps<{
   queryId: string;
 }>();
 
+const {datasets, refresh: refreshDatasets} = useDatasets();
+
 const input = ref("");
-const status = ref("");
 const resultJSON = ref("");
 const message = ref("");
-const resultType = ref<"success" | "error" | null>(null);
+const messageType = ref<"success" | "error" | null>(null);
 const loading = ref(false);
-const messageType = ref(0);
 
 const confettiRef = ref<typeof Confetti>();
 
 const dataset = ref<Dataset | null>(null);
 const query = ref<Query | null>(null);
 watchEffect(() => {
-  if (datasets.value === null) {
+  if (datasets === null) {
     return;
   }
-  dataset.value = datasets.value.find(x => x.id === props.datasetId)!;
+  dataset.value = datasets.find(x => x.id === props.datasetId)!;
   query.value = dataset.value.queries.find(x => x.id === props.queryId)!;
 });
 
@@ -46,16 +46,8 @@ async function doQuery() {
       }
     );
     resultJSON.value = JSON.stringify(result, null, 2);
-    resultType.value = null;
   } catch (e) {
-    if (e instanceof APIError) {
-      resultJSON.value = e.message;
-    } else if (e instanceof Error) {
-      resultJSON.value = e.toString();
-    } else {
-      resultJSON.value = String(e);
-    }
-    resultType.value = "error";
+    message.value = formatError(e);
   } finally {
     loading.value = false;
   }
@@ -78,15 +70,10 @@ async function doCheck() {
     message.value = `Congratulations, that was the correct query! You have received ${result.points} points.`;
     messageType.value = "success"; // if the API didn't error we know it's correct
     confettiRef.value?.fire({});
+    refreshDatasets();
   } catch (e) {
-    if (e instanceof APIError) {
-      message.value = e.message;
-    } else if (e instanceof Error) {
-      message.value = e.toString();
-    } else {
-      message.value = String(e);
-    }
-    resultType.value = "error";
+    message.value = formatError(e);
+    messageType.value = "error";
   } finally {
     loading.value = false;
   }
@@ -101,17 +88,11 @@ async function getHint() {
         200,
         {}
     ) as Query;
-    const dsIdx = datasets.value!.findIndex(x => x.id === props.datasetId);
-    const qIdx = datasets.value![dsIdx].queries.findIndex(x => x.id === props.queryId);
-    datasets.value![dsIdx].queries[qIdx] = result;
+    const dsIdx = datasets!.findIndex(x => x.id === props.datasetId);
+    const qIdx = datasets![dsIdx].queries.findIndex(x => x.id === props.queryId);
+    datasets![dsIdx].queries[qIdx] = result;
   } catch (e) {
-    if (e instanceof APIError) {
-      message.value = e.message;
-    } else if (e instanceof Error) {
-      message.value = e.toString();
-    } else {
-      message.value = String(e);
-    }
+    message.value = formatError(e);
     messageType.value = "error";
   } finally {
     loading.value = false;
@@ -145,9 +126,8 @@ async function getHint() {
         Check Answer
       </button>
     </div>
-    <p>{{ status }}</p>
-    <Editor v-if="resultJSON" v-model="resultJSON" language="json" readonly></Editor>
     <div v-if="message" class="message" :class="messageType">{{ message }}</div>
+    <Editor v-if="resultJSON" v-model="resultJSON" language="json" readonly></Editor>
   </div>
   <confetti ref="confettiRef"></confetti>
 </template>

@@ -9,6 +9,9 @@ import (
 )
 
 func Connect(g *cfg.Globals) (*QueryConnection, *ManagementConnection, error) {
+	if g.DB.Debug {
+		gocb.SetLogger(gocb.DefaultStdioLogger())
+	}
 	txnOptions := gocb.TransactionsConfig{}
 	if g.DB.TxnsNoDurable {
 		txnOptions.DurabilityLevel = gocb.DurabilityLevelNone
@@ -38,11 +41,13 @@ func Connect(g *cfg.Globals) (*QueryConnection, *ManagementConnection, error) {
 		bucket:  mCluster.Bucket(g.DB.ManagementBucket),
 		s:       mCluster.Bucket(g.DB.ManagementBucket).Scope(g.DB.ManagementScope),
 	}
-	err = mgmt.init()
-	if err != nil {
-		_ = qCluster.Close(nil)
-		_ = mCluster.Close(nil)
-		return nil, nil, fmt.Errorf("failed to initialize mgmt: %w", err)
+	if g.DB.ManagementInit {
+		err = mgmt.init()
+		if err != nil {
+			_ = qCluster.Close(nil)
+			_ = mCluster.Close(nil)
+			return nil, nil, fmt.Errorf("failed to initialize mgmt: %w", err)
+		}
 	}
 	return q, mgmt, nil
 }

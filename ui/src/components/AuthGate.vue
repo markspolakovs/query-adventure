@@ -3,7 +3,7 @@
 // Check out https://vuejs.org/api/sfc-script-setup.html#script-setup
 import { ref } from "vue";
 import { currentUser, User } from "../lib/userState";
-import { doAPIRequest, APIError } from "../lib/api";
+import {doAPIRequest, APIError, formatError} from "../lib/api";
 
 const signedIn = ref<boolean | null>(null);
 const signInErr = ref<string | null>(null);
@@ -18,13 +18,7 @@ const signInErr = ref<string | null>(null);
       );
     } catch (e) {
       signedIn.value = false;
-      if (e instanceof APIError) {
-        signInErr.value = e.message;
-      } else if (e instanceof Error) {
-        signInErr.value = e.message;
-      } else {
-        signInErr.value = String(e);
-      }
+      signInErr.value = formatError(e);
     }
     window.history.replaceState({}, "", "/");
   }
@@ -35,13 +29,7 @@ const signInErr = ref<string | null>(null);
     signedIn.value = true;
   } catch (e) {
     signedIn.value = false;
-    if (e instanceof APIError) {
-      signInErr.value = e.message;
-    } else if (e instanceof Error) {
-      signInErr.value = e.message;
-    } else {
-      signInErr.value = String(e);
-    }
+    signInErr.value = formatError(e);
   }
 })();
 </script>

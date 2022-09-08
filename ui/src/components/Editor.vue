@@ -46,5 +46,6 @@ onMounted(() => {
   width: 100%;
   min-width: 48rem;
   min-height: 24rem;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
 }
 </style>

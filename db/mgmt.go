@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/couchbase/gocb/v2"
 )
@@ -37,6 +38,7 @@ var mgmtIndexes = [...]string{
 }
 
 func (m *ManagementConnection) init() error {
+	log.Println("Initialising management collections")
 	for _, coll := range mgmtCollections {
 		err := m.bucket.Collections().CreateCollection(gocb.CollectionSpec{
 			Name:      coll,
@@ -49,15 +51,17 @@ func (m *ManagementConnection) init() error {
 			return fmt.Errorf("failed to create collection %q: %w", coll, err)
 		}
 	}
+	log.Println("Creating indexes")
 	indexesNeedBuilding := 0
 	for _, idx := range mgmtIndexes {
 		_, err := m.s.Query(idx+" WITH {\"defer_build\": true}", nil)
+		log.Printf("%s %v", idx, err)
 		if errors.Is(err, gocb.ErrIndexExists) {
 			continue
 		}
 		// ^ doesn't catch for primary indexes
 		var qe *gocb.QueryError
-		if errors.As(err, &qe) && qe.Errors[0].Code == 4300 {
+		if errors.As(err, &qe) && len(qe.Errors) > 0 && qe.Errors[0].Code == 4300 {
 			continue
 		}
 		if err != nil {
@@ -66,6 +70,7 @@ func (m *ManagementConnection) init() error {
 		indexesNeedBuilding++
 	}
 	if indexesNeedBuilding > 0 {
+		log.Printf("Building %d indexes", indexesNeedBuilding)
 		for _, coll := range mgmtCollections {
 			_, err := m.cluster.QueryIndexes().BuildDeferredIndexes(m.bucket.Name(), &gocb.BuildDeferredQueryIndexOptions{
 				ScopeName:      m.s.Name(),

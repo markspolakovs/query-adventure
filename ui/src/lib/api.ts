@@ -82,3 +82,13 @@ export async function doAPIRequest<TR = unknown>(
   }
   return await res.json();
 }
+
+export function formatError(e: unknown): string {
+  if (e instanceof APIError) {
+    return e.message;
+  } else if (e instanceof Error) {
+    return e.toString();
+  } else {
+    return String(e);
+  }
+}

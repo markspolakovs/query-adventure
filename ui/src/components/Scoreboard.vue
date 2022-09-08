@@ -2,11 +2,10 @@
 import {computed, onMounted, onUnmounted, ref} from "vue";
 import {CompletedChallenges, Scoreboard, Team} from "../lib/types";
 import {doAPIRequest} from "../lib/api";
-import {Dataset, datasets} from "../lib/datasetState";
+import {Dataset, useDatasets} from "../lib/datasetState";
 
-(async function () {
-  datasets.value = (await doAPIRequest("GET", "/datasets", 200)) as Dataset[];
-})();
+const {datasets, refresh: refreshDatasets} = useDatasets();
+onMounted(refreshDatasets);
 
 const teams = ref<Team[] | null>(null);
 const scoreboard = ref<Scoreboard | null>(null);
@@ -43,19 +42,18 @@ const completeByTeam = computed(() => {
   return result;
 });
 const incomplete = computed(() => {
-  console.log(completedChallenges.value, datasets.value);
-  if (completedChallenges.value === null || datasets.value === null) {
+  console.log(completedChallenges.value, datasets);
+  if (completedChallenges.value === null || datasets === null) {
     return {};
   }
   console.log(completedChallenges.value);
   let result: Record<string, Record<string, string[]>> = {};
   for (const ds of Object.keys(completedChallenges.value)) {
-    const dsName = datasets.value!.find(x => x.id === ds)!.name;
+    const dsName = datasets!.find(x => x.id === ds)!.name;
     result[dsName] = {};
     // @ts-expect-error go home typescript, you're drunk
     for (const qId of Object.keys(completedChallenges.value[ds])) {
-      // @ts-expect-error
-      const qName = datasets.value!.find(x => x.id === ds)!.queries.find(x => x.id === qId)!.name;
+      const qName = datasets!.find(x => x.id === ds)!.queries.find(x => x.id === qId)!.name;
       result[dsName][qName] = [];
       for (const team of Object.keys(completedChallenges.value[ds][qId])) {
         if (!completedChallenges.value[ds][qId][team]) {

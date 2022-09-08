@@ -209,6 +209,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vue/devtools-api@npm:^6.2.1":
+  version: 6.2.1
+  resolution: "@vue/devtools-api@npm:6.2.1"
+  checksum: 34765af0be9b0cc7e3def73b2792b1514e3c348852c5a7503fe07d013f0e907af6c27c0a32c0637dd748caf37c075af8e53ca3220433e0bd34b6f3405f358272
+  languageName: node
+  linkType: hard
+
 "@vue/reactivity-transform@npm:3.2.38":
   version: 3.2.38
   resolution: "@vue/reactivity-transform@npm:3.2.38"
@@ -1206,6 +1213,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"pinia@npm:^2.0.22":
+  version: 2.0.22
+  resolution: "pinia@npm:2.0.22"
+  dependencies:
+    "@vue/devtools-api": ^6.2.1
+    vue-demi: "*"
+  peerDependencies:
+    "@vue/composition-api": ^1.4.0
+    typescript: ">=4.4.4"
+    vue: ^2.6.14 || ^3.2.0
+  peerDependenciesMeta:
+    "@vue/composition-api":
+      optional: true
+    typescript:
+      optional: true
+  checksum: 394906326758ac41acfdf4a29263c952c2cb7f35ebf87771a025ab492bdde7cf7fd87a49f82ec3a98bf8323ed2cb231f1ad272f7ea522694a9fab5a5cde3e727
+  languageName: node
+  linkType: hard
+
 "postcss@npm:^8.1.10, postcss@npm:^8.4.16":
   version: 8.4.16
   resolution: "postcss@npm:8.4.16"
@@ -1485,6 +1511,7 @@ __metadata:
     "@vitejs/plugin-vue": ^3.0.3
     canvas-confetti: ^1.5.1
     monaco-editor: 0.34.0
+    pinia: ^2.0.22
     typescript: ^4.6.4
     vite: ^3.0.7
     vue: ^3.2.37
@@ -1546,6 +1573,22 @@ __metadata:
   bin:
     vite: bin/vite.js
   checksum: 6341aa43579ae45f8a383bdc0c5041dea3dff98f14e0a546d6d884a864134b00082246a28d1de8adff0ce0dd92b468c7ade8f972ffe1ed97258671d63e0f16f7
+  languageName: node
+  linkType: hard
+
+"vue-demi@npm:*":
+  version: 0.13.11
+  resolution: "vue-demi@npm:0.13.11"
+  peerDependencies:
+    "@vue/composition-api": ^1.0.0-rc.1
+    vue: ^3.0.0-0 || ^2.6.0
+  peerDependenciesMeta:
+    "@vue/composition-api":
+      optional: true
+  bin:
+    vue-demi-fix: bin/vue-demi-fix.js
+    vue-demi-switch: bin/vue-demi-switch.js
+  checksum: 0fbe9bf8ab7fe498ffa2bbd0cfc8f6f43a6bbaa5eda3e20ef1b70dca7c8b0ddb216a7ff2f632b694fe0735805638975abb441c621ec0bd2e6d4656353f316c15
   languageName: node
   linkType: hard
 

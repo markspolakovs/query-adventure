@@ -15,6 +15,8 @@ type DBCfg struct {
 	ManagementBucket   string `default:"mgmt"`
 	ManagementScope    string `default:"_default"`
 	TxnsNoDurable      bool   `default:"false"`
+	Debug              bool   `default:"false"`
+	ManagementInit     bool   `default:"true"`
 }
 
 type Globals struct {

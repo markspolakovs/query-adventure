@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import {onMounted, ref} from "vue";
 import { doAPIRequest } from "../lib/api";
-import { Dataset, datasets } from "../lib/datasetState";
+import {useDatasets} from "../lib/datasetState";
 import Challenge from "./Challenge.vue";
 
 const active = ref<null | [string, string]>(null);
 
-(async function () {
-  datasets.value = (await doAPIRequest("GET", "/datasets", 200)) as Dataset[];
-})();
+const datasets = useDatasets();
+onMounted(datasets.refresh);
 </script>
 
 <template>
@@ -20,8 +19,8 @@ const active = ref<null | [string, string]>(null);
   />
   <div v-else class="list">
     <h2>Datasets</h2>
-    <b v-if="datasets === null">Loading, please wait...</b>
-    <div v-if="datasets !== null" v-for="ds in datasets" :key="ds.id">
+    <b v-if="datasets.datasets === null">Loading, please wait...</b>
+    <div v-if="datasets.datasets !== null" v-for="ds in datasets.datasets" :key="ds.id">
       <h3>{{ ds.name }}</h3>
       <p>{{ ds.description }}</p>
       <p>
