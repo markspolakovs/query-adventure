@@ -107,10 +107,30 @@
         Find the details of all tram lines, ordered by the route ID.
       points: 10
       query: |-
-        SELECT RAW r FROM routes r WHERE r.agency_id = "METL" AND route_short_name NOT LIKE "%Bus Replacement" ORDER BY r.route_id
+        SELECT RAW r FROM routes r WHERE r.agency_id = "METL"
+        AND route_short_name NOT LIKE "%Bus Replacement" ORDER BY r.route_id
       hints:
         - The data contains tram replacement buses - you'll need to exclude these.
         - The Metrolink agency ID is METL.
+
+    - id: schedule
+      name: Tram Schehdule
+      challenge: |-
+        Find the schedule of today's 14:50 East Didsbury to Rochdale tram. Include the name of each stop, the scheduled departure time,
+        as well as the journey time from the previous stop in minutes.
+      points: 30
+      query: |-
+        SELECT stops.stop_name,
+          stop_times.departure_time,
+          (STR_TO_MILLIS(stop_times.arrival_time) - STR_TO_MILLIS(LAG(stop_times.departure_time) OVER (
+                     ORDER BY stop_times.stop_sequence))) /60/1000 AS travel_time
+        FROM stop_times
+        INNER JOIN stops ON stop_times.stop_id = stops.stop_id
+        WHERE stop_times.trip_id = "METLPINK:005MF7MF:I:100:CURRENT"
+        ORDER BY stop_times.stop_sequence
+      hints:
+        - You'll need to use a window function to find the journey times. STR_TO_MILLIS can parse the time into a number.
+        - Don't try to complete the entire challenge in one query. For example you could find the trip ID in one query and use it later in another.
 
     - id: departure-board
       name: Take Me Home, Metrolink
@@ -183,6 +203,8 @@
         WHERE ANY res IN r.results SATISFIES res.driver.DriverRef = "ricciardo" AND res.position = 1 END
         ORDER BY r.date DESC
         LIMIT 1
+      hints:
+        -
 
     - id: last-winners
       name: Race Winners
@@ -237,5 +259,30 @@
         ORDER BY name
       hints:
         - Not all of the commentators have actually driven in F1.
-        - UNNEST may be helpful.
         - You can use `WHERE name IN ["foo", "bar"]` to avoid having to write 10 WHERE/AND clauses.
+        - UNNEST may be helpful.
+
+    - id: bahrain-delta
+      name: Fastest-Slowest
+      challenge: |-
+        Find the driver who had the biggest difference between the times of their fastest and slowest lap at the 2021
+        Bahrain Grand Prix. Include the driver's surname, the fastest and slowest lap times, and the difference between
+        the two in miliseconds
+      points: 60
+      query: |-
+        WITH bylap AS (
+            SELECT RAW ARRAY {"lap": lap, "data": data} FOR lap:data IN lt END
+            FROM (
+                SELECT RAW lap_times
+                FROM _default
+                WHERE year = 2021
+                    AND circuit.circuitRef = "bahrain")AS lt)
+        SELECT data.driver.Surname AS surname,
+               MAX(data.time) AS slowest,
+               MIN(data.time) AS fastest,
+               MAX(data.time_millis) - MIN(data.time_millis) AS delta
+        FROM ARRAY_FLATTEN(bylap, 1) bl
+        UNNEST bl.data data
+        GROUP BY data.driver.Surname
+        ORDER BY delta DESC
+        LIMIT 1

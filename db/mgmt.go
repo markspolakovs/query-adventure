@@ -55,13 +55,12 @@ func (m *ManagementConnection) init() error {
 	indexesNeedBuilding := 0
 	for _, idx := range mgmtIndexes {
 		_, err := m.s.Query(idx+" WITH {\"defer_build\": true}", nil)
-		log.Printf("%s %v", idx, err)
 		if errors.Is(err, gocb.ErrIndexExists) {
 			continue
 		}
 		// ^ doesn't catch for primary indexes
 		var qe *gocb.QueryError
-		if errors.As(err, &qe) && len(qe.Errors) > 0 && qe.Errors[0].Code == 4300 {
+		if errors.As(err, &qe) && len(qe.Errors) > 0 && (qe.Errors[0].Code == 4300 || qe.Errors[0].Code == 5000) {
 			continue
 		}
 		if err != nil {

@@ -28,6 +28,10 @@ cbu=${COUCHBASE_USER:-Administrator}
 cbp=${COUCHBASE_PASSWORD:-password}
 
 function create_bucket() {
+  if [[ "$cbh" == *"cloud.couchbase.com" ]]; then
+    echo "Not creating bucket against Capella."
+    return 0
+  fi
   name=$1
   quota=${2:-512}
   backend=${3:-couchstore}
@@ -45,7 +49,7 @@ function create_bucket() {
 function create_collection() {
   bucket=$1
   collection=$2
-  if ! cc_out=$("$cbc" collection-manage -c "$cbh" -u "$cbu" -p "$cbp" --bucket "$bucket" --create-collection "_default.$collection"); then
+  if ! cc_out=$("$cbc" collection-manage --cacert ~/Downloads/capella.pem -c "$cbh" -u "$cbu" -p "$cbp" --bucket "$bucket" --create-collection "_default.$collection"); then
     if echo "$cc_out" | grep -q 'already exists'; then
       echo "Collection $bucket._default.$collection already exists, skipping creation"
     else
@@ -65,7 +69,7 @@ fi
 
 go run ./scripts/process_f1.go
 create_bucket f1 200 couchstore
-"$cbi" json -c "$cbh" -u "$cbu" -p "$cbp" -f list -d file://races.json -b f1 --generate-key "%raceId%"
+"$cbi" json --cacert ~/Downloads/capella.pem -c "$cbh" -u "$cbu" -p "$cbp" -f list -d file://races.json -b f1 --generate-key "%raceId%"
 
 if [ ! -f ~/Downloads/TfGMgtfsnew.zip ]; then
   echo "Downloading TfGMgtfsnew.zip"
@@ -79,19 +83,19 @@ echo "Importing TfGM data..."
 
 create_bucket tfgm 1024 magma
 create_collection tfgm agency
-"$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.agency" -g "%agency_id%" -d "file://$(pwd)/_tmp/tfgm/agency.txt"
+"$cbi" csv  --cacert ~/Downloads/capella.pem --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.agency" -g "%agency_id%" -d "file://$(pwd)/_tmp/tfgm/agency.txt"
 create_collection tfgm calendar_dates
-"$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.calendar_dates" -g "%service_id%::%date%" -d "file://$(pwd)/_tmp/tfgm/calendar_dates.txt"
+"$cbi" csv  --cacert ~/Downloads/capella.pem --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.calendar_dates" -g "%service_id%::%date%" -d "file://$(pwd)/_tmp/tfgm/calendar_dates.txt"
 create_collection tfgm calendar
-"$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.calendar" -g "%service_id%" -d "file://$(pwd)/_tmp/tfgm/calendar.txt"
+"$cbi" csv  --cacert ~/Downloads/capella.pem --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.calendar" -g "%service_id%" -d "file://$(pwd)/_tmp/tfgm/calendar.txt"
 create_collection tfgm routes
-"$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.routes" -g "%route_id%" -d "file://$(pwd)/_tmp/tfgm/routes.txt"
+"$cbi" csv  --cacert ~/Downloads/capella.pem --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.routes" -g "%route_id%" -d "file://$(pwd)/_tmp/tfgm/routes.txt"
 create_collection tfgm stop_times
-"$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.stop_times" -g "%trip_id%::%stop_id%::%stop_sequence%" -d "file://$(pwd)/_tmp/tfgm/stop_times.txt"
+"$cbi" csv  --cacert ~/Downloads/capella.pem --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.stop_times" -g "%trip_id%::%stop_id%::%stop_sequence%" -d "file://$(pwd)/_tmp/tfgm/stop_times.txt"
 create_collection tfgm stops
-"$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.stops" -g "%stop_id%" -d "file://$(pwd)/_tmp/tfgm/stops.txt"
+"$cbi" csv  --cacert ~/Downloads/capella.pem --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.stops" -g "%stop_id%" -d "file://$(pwd)/_tmp/tfgm/stops.txt"
 create_collection tfgm trips
-"$cbi" csv --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.trips" -g "%trip_id%" -d "file://$(pwd)/_tmp/tfgm/trips.txt"
+"$cbi" csv  --cacert ~/Downloads/capella.pem --infer-types -c "$cbh" -u "$cbu" -p "$cbp" -b tfgm --scope-collection-exp "_default.trips" -g "%trip_id%" -d "file://$(pwd)/_tmp/tfgm/trips.txt"
 
 if [ -n "${CLEANUP:-}" ]; then
   echo "Cleaning up..."
